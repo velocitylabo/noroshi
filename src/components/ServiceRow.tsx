@@ -1,3 +1,4 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ServiceView } from "../types";
 
 interface Props {
@@ -13,12 +14,36 @@ const statusColors: Record<ServiceView["status"], string> = {
   error: "bg-red-100 text-red-800",
 };
 
+const serviceTypeToScheme: Record<string, string> = {
+  "_http._tcp": "http",
+  "_https._tcp": "https",
+};
+
+function getServiceUrl(service: ServiceView): string | null {
+  const scheme = serviceTypeToScheme[service.type];
+  if (!scheme) return null;
+  return `${scheme}://localhost:${service.port}`;
+}
+
 export function ServiceRow({ service, onToggle, onEdit, onDelete }: Props) {
   const txtEntries = Object.entries(service.txt);
+  const url = getServiceUrl(service);
 
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50">
-      <td className="px-4 py-3 text-sm font-medium">{service.name}</td>
+      <td className="px-4 py-3 text-sm font-medium">
+        {url && service.status === "running" ? (
+          <button
+            onClick={() => openUrl(url)}
+            className="text-blue-600 hover:text-blue-800 hover:underline"
+            title={url}
+          >
+            {service.name}
+          </button>
+        ) : (
+          service.name
+        )}
+      </td>
       <td className="px-4 py-3 text-sm font-mono text-gray-600">
         {service.type}
       </td>
