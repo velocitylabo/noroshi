@@ -19,7 +19,17 @@ use tauri::{AppHandle, Manager};
 
 fn show_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
-        let _ = window.show();
+        let _ = window.unminimize();
+
+        #[cfg(target_os = "linux")]
+        {
+            use gtk::prelude::GtkWindowExt;
+            if let Ok(gtk_window) = window.gtk_window() {
+                gtk_window.present();
+                return;
+            }
+        }
+
         let _ = window.set_focus();
     }
 }
@@ -115,7 +125,7 @@ pub fn run() {
             if window.label() == "main" {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                     api.prevent_close();
-                    let _ = window.hide();
+                    let _ = window.minimize();
                 }
             }
         })
