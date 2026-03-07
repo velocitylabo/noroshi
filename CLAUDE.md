@@ -10,14 +10,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commit conventions
 
-Use conventional commits. release-please uses these to auto-generate changelogs and determine version bumps.
+Use conventional commits.
 
 Format: `<type>(<scope>): <description>`
 
 Types:
-- `feat:` — new feature (minor bump)
-- `fix:` — bug fix (patch bump)
-- `feat!:` / `fix!:` — breaking change (major bump)
+- `feat:` — new feature
+- `fix:` — bug fix
 - `docs:` — documentation only
 - `ci:` — CI/workflow changes
 - `chore:` — maintenance tasks
@@ -93,4 +92,4 @@ Backend emits two Tauri events:
 
 ## Spec
 
-See `noroshi-spec.md` for the full design spec. All three phases are implemented: Phase 1 (core service management), Phase 2 (monitoring), Phase 3 (settings/polish — config import/export, hostname tooltip).
+See `docs/STRATEGY.md` for the full design spec and roadmap. Phase 1-3 are implemented: core service management, monitoring, settings/polish.
