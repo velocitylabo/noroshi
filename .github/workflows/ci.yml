@@ -40,7 +40,18 @@ jobs:
         run: npx vitest run
 
   cargo-check:
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            label: Linux
+          - os: macos-latest
+            label: macOS
+          - os: windows-latest
+            label: Windows
+    runs-on: ${{ matrix.os }}
+    name: cargo-check (${{ matrix.label }})
     steps:
       - uses: actions/checkout@v4
 
@@ -50,7 +61,8 @@ jobs:
         with:
           workspaces: src-tauri
 
-      - name: Install system dependencies
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
