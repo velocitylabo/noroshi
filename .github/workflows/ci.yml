@@ -1,8 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
@@ -69,18 +67,7 @@ jobs:
   cargo-check:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            label: Linux
-          - os: macos-latest
-            label: macOS
-          - os: windows-latest
-            label: Windows
-    runs-on: ${{ matrix.os }}
-    name: cargo-check (${{ matrix.label }})
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -90,8 +77,7 @@ jobs:
         with:
           workspaces: src-tauri
 
-      - name: Cache apt packages (Linux)
-        if: runner.os == 'Linux'
+      - name: Cache apt packages
         uses: awalsh128/cache-apt-pkgs-action@v1
         with:
           packages: >-
@@ -112,13 +98,10 @@ jobs:
         working-directory: src-tauri
         run: cargo test
 
-      # fmt and clippy only on Linux to avoid redundant checks across OSes
       - name: Cargo fmt check
-        if: runner.os == 'Linux'
         working-directory: src-tauri
         run: cargo fmt -- --check
 
       - name: Cargo clippy
-        if: runner.os == 'Linux'
         working-directory: src-tauri
         run: cargo clippy -- -D warnings
