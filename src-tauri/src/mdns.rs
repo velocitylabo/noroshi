@@ -134,4 +134,22 @@ mod tests {
     fn normalize_hostname_with_local_dot() {
         assert_eq!(normalize_hostname("myhost.local."), "myhost.local.");
     }
+
+    #[test]
+    fn register_service_empty_type_returns_error() {
+        let daemon = match create_daemon() {
+            Ok(d) => d,
+            Err(_) => return, // Skip if daemon creation fails (e.g. network constraints in CI)
+        };
+        let config = ServiceConfig {
+            id: "test-id".into(),
+            name: "Test".into(),
+            service_type: "".into(),
+            port: 8080,
+            txt: std::collections::HashMap::new(),
+            enabled: true,
+        };
+        let result = register_service(&daemon, &config, "myhost");
+        assert!(result.is_err());
+    }
 }
