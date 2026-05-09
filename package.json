@@ -1,0 +1,53 @@
+{
+  "name": "noroshi",
+  "version": "0.0.0-pre.2",
+  "description": "Grammar Prompting for browser LLMs — constrained DSL output without fine-tuning",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"no tests yet\" && exit 0"
+  },
+  "keywords": [
+    "llm",
+    "grammar-prompting",
+    "structured-output",
+    "browser-llm",
+    "litert-lm",
+    "transformers-js",
+    "webllm",
+    "dsl",
+    "constrained-generation",
+    "on-device"
+  ],
+  "author": "Velocity LABO",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/velocitylabo/noroshi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/velocitylabo/noroshi/issues"
+  },
+  "homepage": "https://github.com/velocitylabo/noroshi#readme",
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  }
+}
