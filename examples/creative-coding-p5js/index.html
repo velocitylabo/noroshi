@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>noroshi — creative-coding-p5js PoC</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.11.2/lib/p5.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 900px; }
+    h1 { font-size: 1.3rem; margin: 0 0 6px; }
+    p.lead { color: #555; margin: 0 0 16px; }
+    .row { display: grid; grid-template-columns: 1fr 400px; gap: 16px; }
+    textarea { width: 100%; height: 280px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; padding: 8px; box-sizing: border-box; }
+    pre { background: #f6f8fa; padding: 8px; font-size: 12px; overflow: auto; max-height: 180px; }
+    button { padding: 8px 14px; font-size: 14px; cursor: pointer; }
+    #canvas-host canvas { display: block; }
+    .err { color: #c0392b; font-weight: 600; }
+    .ok { color: #2ecc71; }
+  </style>
+</head>
+<body>
+  <h1>noroshi · creative-coding-p5js PoC</h1>
+  <p class="lead">
+    Paste a noroshi-creative DSL program on the left, hit <strong>Render</strong>,
+    see the p5.js sketch on the right. This harness only exercises the
+    validator + transpiler — no LLM is wired up yet.
+  </p>
+
+  <div class="row">
+    <div>
+      <textarea id="src">background black
+repeat 8 {
+  fill rgb(i * 30, 100, 200)
+  circle i * 45 + 30 h / 2 18
+}
+</textarea>
+      <p>
+        <button id="run">Render</button>
+        <span id="status"></span>
+      </p>
+      <details open>
+        <summary>Transpiled p5.js</summary>
+        <pre id="out"></pre>
+      </details>
+    </div>
+    <div>
+      <div id="canvas-host"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Inline copies of validator + transpiler logic. Kept in sync with
+    // validator.ts and transpile.ts; production builds would bundle the
+    // TS modules via vite/esbuild. This PoC ships the dual-write so the
+    // page works as a single static file.
+    import { validate } from "./harness.mjs";
+    import { transpile } from "./harness.mjs";
+
+    const $ = (id) => document.getElementById(id);
+    let activeSketch = null;
+
+    function render() {
+      const src = $("src").value;
+      const r = validate(src);
+      const status = $("status");
+      if (!r.ok) {
+        status.className = "err";
+        status.textContent = " ✗ " + r.error;
+        $("out").textContent = "";
+        return;
+      }
+      status.className = "ok";
+      status.textContent = " ✓ valid";
+      const js = transpile(src);
+      $("out").textContent = js;
+
+      if (activeSketch) activeSketch.remove();
+      const fn = new Function("p", `with(p){ ${js.replace(/function (setup|draw)\(\)/g, "p.$1 = function()")} }`);
+      activeSketch = new p5((p) => fn(p), $("canvas-host"));
+    }
+
+    $("run").addEventListener("click", render);
+    render();
+  </script>
+</body>
+</html>

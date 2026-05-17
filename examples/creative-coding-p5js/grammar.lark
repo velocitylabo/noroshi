@@ -1,0 +1,73 @@
+// noroshi-creative — minimal creative coding DSL for kids' vibe-coding.
+// Compiles to p5.js. Tokens are whitespace-separated; blocks use { ... }.
+// No statement terminator. Comments start with // and run to end of line.
+//
+// Built-in variables:
+//   t   = elapsed seconds (float)
+//   f   = frame counter   (int)
+//   w   = canvas width    (int)
+//   h   = canvas height   (int)
+//   mx  = mouse X         (int)
+//   my  = mouse Y         (int)
+//   i   = repeat loop counter (only valid inside `repeat`)
+//
+// Built-in functions:
+//   sin(x), cos(x), random(lo, hi), abs(x)
+
+start: block+
+
+block: setup_block
+     | tick_block
+     | stmt
+
+setup_block: "setup" "{" stmt* "}"
+tick_block:  "tick"  "{" stmt* "}"
+
+stmt: shape_stmt
+    | color_stmt
+    | transform_stmt
+    | bg_stmt
+    | repeat_stmt
+
+shape_stmt: "circle" expr expr expr             // x y radius
+          | "square" expr expr expr             // x y size
+          | "rect"   expr expr expr expr        // x y w h
+          | "line"   expr expr expr expr        // x1 y1 x2 y2
+
+color_stmt: "fill"   color
+          | "stroke" color
+          | "no_fill"
+          | "no_stroke"
+
+bg_stmt: "background" color
+
+transform_stmt: "rotate"    expr
+              | "translate" expr expr
+              | "push"
+              | "pop"
+
+repeat_stmt: "repeat" INT "{" stmt* "}"
+
+color: COLOR_NAME
+     | "rgb" "(" expr "," expr "," expr ")"
+
+expr: term (("+" | "-") term)*
+term: factor (("*" | "/") factor)*
+factor: NUMBER
+      | VAR
+      | "(" expr ")"
+      | func_call
+
+func_call: FUNC "(" expr ("," expr)* ")"
+
+FUNC:       "sin" | "cos" | "random" | "abs"
+VAR:        "t" | "f" | "w" | "h" | "mx" | "my" | "i"
+COLOR_NAME: "red"   | "blue"  | "green"  | "yellow"
+          | "white" | "black" | "pink"   | "purple"
+          | "orange"| "gray"
+INT:    /[0-9]+/
+NUMBER: /-?[0-9]+(\.[0-9]+)?/
+
+%import common.WS
+%ignore WS
+%ignore /\/\/[^\n]*/
