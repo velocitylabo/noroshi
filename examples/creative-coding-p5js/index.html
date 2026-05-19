@@ -5,58 +5,107 @@
   <title>noroshi — creative-coding-p5js PoC</title>
   <script src="https://cdn.jsdelivr.net/npm/p5@1.11.2/lib/p5.min.js"></script>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 900px; }
+    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 1100px; }
     h1 { font-size: 1.3rem; margin: 0 0 6px; }
+    h2 { font-size: 1.05rem; margin: 24px 0 8px; padding-top: 16px; border-top: 1px solid #eee; }
     p.lead { color: #555; margin: 0 0 16px; }
-    .row { display: grid; grid-template-columns: 1fr 400px; gap: 16px; }
-    textarea { width: 100%; height: 280px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; padding: 8px; box-sizing: border-box; }
-    pre { background: #f6f8fa; padding: 8px; font-size: 12px; overflow: auto; max-height: 180px; }
+    .row { display: grid; grid-template-columns: 1fr 420px; gap: 16px; align-items: start; }
+    textarea, input, select { font-family: ui-monospace, Menlo, monospace; font-size: 13px; padding: 8px; box-sizing: border-box; }
+    textarea { width: 100%; }
+    #src { height: 200px; }
+    #task { width: 100%; height: 60px; }
+    pre { background: #f6f8fa; padding: 8px; font-size: 12px; overflow: auto; max-height: 220px; }
     button { padding: 8px 14px; font-size: 14px; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
     #canvas-host canvas { display: block; }
     .err { color: #c0392b; font-weight: 600; }
     .ok { color: #2ecc71; }
+    .muted { color: #666; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    progress { width: 100%; height: 14px; }
+    .stat { font-size: 12px; color: #555; }
   </style>
 </head>
 <body>
   <h1>noroshi · creative-coding-p5js PoC</h1>
   <p class="lead">
-    Paste a noroshi-creative DSL program on the left, hit <strong>Render</strong>,
-    see the p5.js sketch on the right. This harness only exercises the
-    validator + transpiler — no LLM is wired up yet.
+    Natural-language prompt → on-device LLM → grammar-validated DSL → live p5.js sketch.
+    The LLM runs entirely in your browser via <code>@mlc-ai/web-llm</code> (WebGPU).
   </p>
 
   <div class="row">
     <div>
+      <h2 style="margin-top:0; border:none; padding:0;">1 · Load a model</h2>
+      <div class="controls">
+        <select id="model">
+          <option value="Llama-3.2-1B-Instruct-q4f32_1-MLC" selected>Llama-3.2-1B (1129 MB)</option>
+          <option value="Qwen2.5-1.5B-Instruct-q4f32_1-MLC">Qwen2.5-1.5B (1889 MB)</option>
+          <option value="gemma-2-2b-it-q4f32_1-MLC-1k">Gemma-2-2B-it (1885 MB, 1k ctx)</option>
+          <option value="Qwen2.5-0.5B-Instruct-q4f32_1-MLC">Qwen2.5-0.5B (1060 MB)</option>
+          <option value="SmolLM2-360M-Instruct-q4f32_1-MLC">SmolLM2-360M (580 MB — fast, low quality)</option>
+        </select>
+        <span class="stat muted">q4f32 builds — work without WebGPU shader-f16 extension</span>
+        <button id="load">Load</button>
+        <span id="load-status" class="muted">no model loaded</span>
+      </div>
+      <progress id="load-progress" value="0" max="1" style="display:none;"></progress>
+
+      <h2>2 · Generate</h2>
+      <textarea id="task" placeholder="Describe what to draw…">Make a rainbow row of 10 circles on a black background.</textarea>
+      <div class="controls" style="margin-top:8px;">
+        <button id="gen" disabled>Generate</button>
+        <label class="stat"><input type="checkbox" id="retry" /> retry on validation failure (×3)</label>
+        <span id="gen-status" class="muted"></span>
+      </div>
+      <details open style="margin-top:8px;">
+        <summary>Generated DSL <span id="dsl-status"></span></summary>
+        <pre id="dsl-out"></pre>
+      </details>
+
+      <h2>3 · Edit / render</h2>
       <textarea id="src">background black
 repeat 8 {
   fill rgb(i * 30, 100, 200)
   circle i * 45 + 30 h / 2 18
 }
 </textarea>
-      <p>
+      <div class="controls" style="margin-top:6px;">
         <button id="run">Render</button>
         <span id="status"></span>
-      </p>
-      <details open>
+      </div>
+      <details>
         <summary>Transpiled p5.js</summary>
         <pre id="out"></pre>
       </details>
     </div>
+
     <div>
       <div id="canvas-host"></div>
+      <details style="margin-top:12px;">
+        <summary>Prompt sent to model (last attempt)</summary>
+        <pre id="prompt-out" style="max-height: 380px;"></pre>
+      </details>
     </div>
   </div>
 
   <script type="module">
-    // Inline copies of validator + transpiler logic. Kept in sync with
-    // validator.ts and transpile.ts; production builds would bundle the
-    // TS modules via vite/esbuild. This PoC ships the dual-write so the
-    // page works as a single static file.
-    import { validate } from "./harness.mjs";
-    import { transpile } from "./harness.mjs";
+    import {
+      validate, transpile, FEW_SHOTS, generate, CreativeCodingValidator, WebLLMAdapter,
+    } from "./harness.mjs?v=2";
+    import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
     const $ = (id) => document.getElementById(id);
     let activeSketch = null;
+    let engine = null;
+    let grammarText = null;
+
+    async function ensureGrammar() {
+      if (grammarText) return grammarText;
+      const r = await fetch("./grammar.lark");
+      if (!r.ok) throw new Error(`failed to fetch grammar.lark: ${r.status}`);
+      grammarText = await r.text();
+      return grammarText;
+    }
 
     function render() {
       const src = $("src").value;
@@ -78,7 +127,84 @@ repeat 8 {
       activeSketch = new p5((p) => fn(p), $("canvas-host"));
     }
 
+    async function loadModel() {
+      const modelId = $("model").value;
+      const btn = $("load");
+      const stat = $("load-status");
+      const prog = $("load-progress");
+      btn.disabled = true;
+      $("gen").disabled = true;
+      prog.style.display = "block";
+      prog.value = 0;
+      stat.className = "muted";
+      stat.textContent = `loading ${modelId}…`;
+      try {
+        engine = await CreateMLCEngine(modelId, {
+          initProgressCallback: (p) => {
+            if (typeof p.progress === "number") prog.value = p.progress;
+            stat.textContent = p.text ?? `${Math.round((p.progress ?? 0) * 100)}%`;
+          },
+        });
+        stat.className = "ok";
+        stat.textContent = `✓ ${modelId} ready`;
+        $("gen").disabled = false;
+      } catch (e) {
+        stat.className = "err";
+        stat.textContent = "failed: " + (e?.message ?? e);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function doGenerate() {
+      if (!engine) { $("gen-status").textContent = "load a model first"; return; }
+      const task = $("task").value.trim();
+      if (!task) { $("gen-status").textContent = "task is empty"; return; }
+
+      const btn = $("gen");
+      btn.disabled = true;
+      const gs = $("gen-status");
+      gs.className = "muted";
+      gs.textContent = "generating…";
+      $("dsl-status").textContent = "";
+      $("dsl-out").textContent = "";
+
+      const grammar = await ensureGrammar();
+      const llm = new WebLLMAdapter(engine);
+      const t0 = performance.now();
+      try {
+        const result = await generate({
+          task,
+          grammar,
+          examples: FEW_SHOTS,
+          llm,
+          validator: new CreativeCodingValidator(),
+          retry: $("retry").checked ? { maxAttempts: 3, includeErrorInPrompt: true } : { maxAttempts: 1 },
+          sample: { temperature: 0.2, maxTokens: 128 },
+          onPrompt: (p) => { $("prompt-out").textContent = p; },
+        });
+        const dt = ((performance.now() - t0) / 1000).toFixed(1);
+        $("dsl-out").textContent = result.output;
+        const ok = result.validation?.ok;
+        $("dsl-status").innerHTML = ok
+          ? ` <span class="ok">✓ valid</span> <span class="muted">(${result.attempts} attempt(s), ${dt}s)</span>`
+          : ` <span class="err">✗ ${result.validation?.error ?? "unknown"}</span> <span class="muted">(${result.attempts} attempt(s), ${dt}s)</span>`;
+        gs.textContent = "";
+        if (ok) {
+          $("src").value = result.output;
+          render();
+        }
+      } catch (e) {
+        gs.className = "err";
+        gs.textContent = "error: " + (e?.message ?? e);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
     $("run").addEventListener("click", render);
+    $("load").addEventListener("click", loadModel);
+    $("gen").addEventListener("click", doGenerate);
     render();
   </script>
 </body>

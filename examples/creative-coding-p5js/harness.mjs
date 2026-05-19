@@ -1,7 +1,8 @@
-// Self-contained ESM port of validator.ts + transpile.ts for the static
-// browser harness in index.html. Keep in sync with the TS sources — they
-// are the authoritative implementations; this file exists only because the
-// PoC ships a single-file static page (no bundler).
+// Self-contained ESM port of validator.ts + transpile.ts + noroshi core +
+// few-shots + WebLLM adapter for the static browser harness in index.html.
+// Keep in sync with the TS sources — they are the authoritative
+// implementations; this file exists only because the PoC ships a single-file
+// static page (no bundler).
 
 const KEYWORDS = new Set([
   "setup", "tick", "circle", "square", "rect", "line",
@@ -321,4 +322,218 @@ export function transpile(src) {
   ].join("\n  ");
   const drawBody = (hadTick ? tick : top).join("\n  ") || "/* empty */";
   return `function setup() {\n  ${setupBody}\n}\n\nfunction draw() {\n  ${drawBody}\n}\n`;
+}
+
+// --- few-shot bank (mirrors examples.ts) ---
+
+export const FEW_SHOTS = [
+  {
+    input: "Draw a red circle in the middle of the canvas.",
+    derivation: [
+      "start → block",
+      "block → stmt",
+      "stmt → bg_stmt | shape_stmt (×2)",
+      "shape_stmt → fill color (red), circle expr expr expr",
+    ].join("\n"),
+    output: ["background white", "fill red", "circle w / 2 h / 2 50"].join("\n"),
+  },
+  {
+    input: "Make a bouncing yellow square that moves left and right.",
+    derivation: [
+      "start → block (setup) block (tick)",
+      "setup → background black",
+      "tick → fill yellow, square (sin(t) * 100 + w/2) h/2 40",
+    ].join("\n"),
+    output: [
+      "setup {",
+      "  background black",
+      "}",
+      "tick {",
+      "  background black",
+      "  fill yellow",
+      "  square sin(t) * 100 + w / 2 h / 2 40",
+      "}",
+    ].join("\n"),
+  },
+  {
+    input: "Draw 10 blue circles in a horizontal row.",
+    derivation: [
+      "start → block",
+      "block → bg_stmt, fill blue, repeat 10 { circle (i * 40 + 20) h/2 15 }",
+    ].join("\n"),
+    output: [
+      "background white",
+      "fill blue",
+      "repeat 10 {",
+      "  circle i * 40 + 20 h / 2 15",
+      "}",
+    ].join("\n"),
+  },
+  {
+    input: "A pink circle follows the mouse, on a black background.",
+    derivation: ["tick → background black, fill pink, circle mx my 30"].join("\n"),
+    output: [
+      "tick {",
+      "  background black",
+      "  fill pink",
+      "  circle mx my 30",
+      "}",
+    ].join("\n"),
+  },
+];
+
+// --- noroshi core (mirrors src/prompt.ts + src/noroshi.ts) ---
+
+const DEFAULT_SYSTEM = [
+  "You generate output strictly conforming to the grammar below.",
+  "Do not include explanation, prose, code fences, or commentary —",
+  "emit only the DSL string that the grammar would accept.",
+].join(" ");
+
+export function buildPrompt(p) {
+  const parts = [];
+  parts.push(p.systemPrompt ?? DEFAULT_SYSTEM);
+  parts.push("\nGrammar (BNF/EBNF):\n```");
+  parts.push(p.grammar.trim());
+  parts.push("```");
+  if (p.examples?.length) {
+    parts.push("\nExamples:");
+    for (const ex of p.examples) {
+      parts.push(`Task: ${ex.input}`);
+      if (ex.derivation) parts.push(`Derivation:\n${ex.derivation.trim()}`);
+      parts.push(`Output:\n${ex.output.trim()}\n`);
+    }
+  }
+  if (p.errorFeedback) {
+    parts.push(
+      `\nPrior attempt failed validation with: ${p.errorFeedback}\n` +
+        `Produce a new output that fixes this error.\n`,
+    );
+  }
+  parts.push(`\nTask: ${p.task}`);
+  parts.push("Output:");
+  return parts.join("\n");
+}
+
+export async function generate(opts) {
+  const maxAttempts = opts.retry?.maxAttempts ?? 1;
+  const includeErr = opts.retry?.includeErrorInPrompt ?? false;
+
+  let attempts = 0;
+  let lastError;
+  let lastCandidates;
+  let lastValidation;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const prompt = buildPrompt({
+      task: opts.task,
+      grammar: opts.grammar,
+      examples: opts.examples,
+      systemPrompt: opts.systemPrompt,
+      errorFeedback: includeErr ? lastError : undefined,
+    });
+
+    if (opts.onPrompt) opts.onPrompt(prompt, attempt);
+
+    const n = opts.selfConsistency?.n ?? 1;
+    const candidates = await _sample(opts.llm, prompt, n, opts.sample);
+    attempts += candidates.length;
+    lastCandidates = candidates;
+
+    if (opts.onCandidates) opts.onCandidates(candidates, attempt);
+
+    const picked = _pick(candidates, opts);
+    lastValidation = picked.validation;
+
+    if (!opts.validator) {
+      return { output: picked.output, attempts, candidates: n > 1 ? candidates : undefined };
+    }
+    if (picked.validation?.ok) {
+      return {
+        output: picked.output,
+        attempts,
+        candidates: n > 1 ? candidates : undefined,
+        validation: picked.validation,
+      };
+    }
+    lastError = picked.validation && !picked.validation.ok ? picked.validation.error : "unknown";
+  }
+
+  return {
+    output: lastCandidates?.[0] ?? "",
+    attempts,
+    candidates: lastCandidates,
+    validation: lastValidation,
+  };
+}
+
+async function _sample(llm, prompt, n, opts) {
+  if (n === 1) return [await llm.complete(prompt, opts)];
+  if (llm.sampleN) return llm.sampleN(prompt, n, opts);
+  return Promise.all(Array.from({ length: n }, () => llm.complete(prompt, opts)));
+}
+
+function _pick(candidates, opts) {
+  if (!opts.validator) return { output: candidates[0] ?? "" };
+  for (const c of candidates) {
+    const v = opts.validator.validate(c);
+    if (v.ok) return { output: c, validation: v };
+  }
+  const fallback = candidates[0] ?? "";
+  return { output: fallback, validation: opts.validator.validate(fallback) };
+}
+
+// --- validator wrapper that conforms to the noroshi Validator interface ---
+
+export class CreativeCodingValidator {
+  constructor() { this.id = "creative-coding"; }
+  validate(output) { return validate(output); }
+}
+
+// --- WebLLM adapter ---
+//
+// Wraps an MLCEngine from @mlc-ai/web-llm. The engine is created OUTSIDE this
+// adapter (so the caller controls model id / progress callback / cache); the
+// adapter only knows how to drive chat.completions.create. The completion is
+// post-processed to strip the most common LLM noise we observe with small
+// instruct models: code fences, leading prose, trailing comments. Validator
+// + retry handles the rest.
+
+const FENCE_RE = /^\s*```[a-zA-Z]*\n?|\n?```\s*$/g;
+
+function _cleanCompletion(raw) {
+  let s = String(raw ?? "").replace(FENCE_RE, "");
+  // If the model emitted "Output:" again, take what follows.
+  const m = s.match(/(?:^|\n)\s*Output:\s*\n?([\s\S]*)$/);
+  if (m) s = m[1];
+  // Strip a leading task echo like "Task: ...\n".
+  s = s.replace(/^\s*Task:[^\n]*\n+/, "");
+  // Stop at a fresh "Task:" line — small models love to continue with more
+  // few-shot turns. Keep only the first program.
+  const next = s.match(/\n\s*Task:\s/);
+  if (next) s = s.slice(0, next.index);
+  return s.trim();
+}
+
+export class WebLLMAdapter {
+  constructor(engine, { id = "webllm" } = {}) {
+    this.id = id;
+    this.engine = engine;
+  }
+
+  async complete(prompt, opts = {}) {
+    const reply = await this.engine.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      temperature: opts.temperature ?? 0.2,
+      top_p: opts.topP ?? 0.95,
+      max_tokens: opts.maxTokens ?? 256,
+      stop: opts.stop,
+    });
+    const content = reply?.choices?.[0]?.message?.content ?? "";
+    return _cleanCompletion(content);
+  }
+
+  async sampleN(prompt, n, opts = {}) {
+    return Promise.all(Array.from({ length: n }, () => this.complete(prompt, opts)));
+  }
 }
