@@ -108,8 +108,9 @@ repeat 8 {
 
   <script type="module">
     import {
-      validate, transpile, FEW_SHOTS, generate, CreativeCodingValidator, WebLLMAdapter, FetchAdapter,
-    } from "./harness.mjs?v=3";
+      validate, transpile, FEW_SHOTS, generate, CreativeCodingValidator,
+      WebLLMAdapter, FetchAdapter, assertSafeP5,
+    } from "./harness.mjs?v=4";
     import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
     const $ = (id) => document.getElementById(id);
@@ -152,6 +153,16 @@ repeat 8 {
       status.textContent = " ✓ valid";
       const js = transpile(src);
       $("out").textContent = js;
+
+      // Second defence layer: even if the validator regresses, refuse to run
+      // anything outside the p5 API allow-list. See assertSafeP5 in harness.mjs.
+      try {
+        assertSafeP5(js);
+      } catch (e) {
+        status.className = "err";
+        status.textContent = " ✗ " + (e?.message ?? e);
+        return;
+      }
 
       if (activeSketch) activeSketch.remove();
       const fn = new Function("p", `with(p){ ${js.replace(/function (setup|draw)\(\)/g, "p.$1 = function()")} }`);

@@ -325,6 +325,65 @@ export function transpile(src) {
   return `function setup() {\n  ${setupBody}\n}\n\nfunction draw() {\n  ${drawBody}\n}\n`;
 }
 
+// --- safety gate for transpiled JS ---
+//
+// `new Function(...)` in index.html executes the transpiled output verbatim.
+// In normal operation the validator already rejects DSL with unknown
+// identifiers, so the transpiler only emits a fixed vocabulary. assertSafeP5
+// is a SECOND defence layer: even if the validator regresses or a future
+// transpiler change adds a code path, this gate refuses to run anything
+// outside the known p5 surface.
+//
+// Reject heuristic:
+//   1. Any forbidden token (eval, Function, window, document, fetch,
+//      __proto__, constructor, prototype, etc.) anywhere in the output.
+//   2. Any function call whose callee isn't in the p5-API allow-list.
+//
+// Keep the allow-list in sync with transpile.ts emit cases.
+
+const FORBIDDEN_TOKEN_RE = /\b(?:eval|Function|import|require|window|document|globalThis|self|top|parent|fetch|XMLHttpRequest|WebSocket|Worker|importScripts|Reflect|Proxy|setTimeout|setInterval|setImmediate|queueMicrotask|__proto__|constructor|prototype)\b/;
+
+// Identifier followed by `(`. Captures both function definitions
+// (`function setup()`) and call sites (`circle(...)`). We allow both
+// because the transpiler only ever emits a fixed top-level shape.
+const CALLABLE_RE = /([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/g;
+
+// JS control-flow keywords that CALLABLE_RE picks up (e.g. `for (...)`,
+// `if (...)`). Not function calls, so skip them.
+const JS_KEYWORD = new Set([
+  "for", "if", "while", "else", "do", "switch", "case", "break", "continue",
+  "return", "function", "new", "typeof", "instanceof", "in", "of",
+  "try", "catch", "finally", "throw", "let", "const", "var",
+  "class", "extends", "super", "this", "yield", "async", "await",
+  "static", "delete", "void", "true", "false", "null", "undefined",
+]);
+
+const P5_ALLOW_CALL = new Set([
+  // Function definitions emitted by the transpiler:
+  "setup", "draw",
+  // p5 instance methods (global mode):
+  "createCanvas", "noLoop",
+  "background", "fill", "stroke", "noFill", "noStroke",
+  "push", "pop", "rotate", "translate",
+  "circle", "square", "rect", "line",
+  // Built-in functions reachable via the DSL:
+  "sin", "cos", "random", "abs", "millis",
+]);
+
+export function assertSafeP5(js) {
+  const m = String(js).match(FORBIDDEN_TOKEN_RE);
+  if (m) {
+    throw new Error(`assertSafeP5: forbidden token "${m[0]}" in transpiled output`);
+  }
+  for (const match of String(js).matchAll(CALLABLE_RE)) {
+    const name = match[1];
+    if (JS_KEYWORD.has(name)) continue;
+    if (!P5_ALLOW_CALL.has(name)) {
+      throw new Error(`assertSafeP5: disallowed call "${name}" in transpiled output`);
+    }
+  }
+}
+
 // --- few-shot bank (mirrors examples.ts) ---
 
 export const FEW_SHOTS = [
