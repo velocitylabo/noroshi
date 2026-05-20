@@ -35,20 +35,38 @@
 
   <div class="row">
     <div>
-      <h2 style="margin-top:0; border:none; padding:0;">1 · Load a model</h2>
+      <h2 style="margin-top:0; border:none; padding:0;">1 · Choose a backend</h2>
       <div class="controls">
-        <select id="model">
-          <option value="Llama-3.2-1B-Instruct-q4f32_1-MLC" selected>Llama-3.2-1B (1129 MB)</option>
-          <option value="Qwen2.5-1.5B-Instruct-q4f32_1-MLC">Qwen2.5-1.5B (1889 MB)</option>
-          <option value="gemma-2-2b-it-q4f32_1-MLC-1k">Gemma-2-2B-it (1885 MB, 1k ctx)</option>
-          <option value="Qwen2.5-0.5B-Instruct-q4f32_1-MLC">Qwen2.5-0.5B (1060 MB)</option>
-          <option value="SmolLM2-360M-Instruct-q4f32_1-MLC">SmolLM2-360M (580 MB — fast, low quality)</option>
-        </select>
-        <span class="stat muted">q4f32 builds — work without WebGPU shader-f16 extension</span>
-        <button id="load">Load</button>
-        <span id="load-status" class="muted">no model loaded</span>
+        <label><input type="radio" name="backend" value="webllm" checked /> WebLLM (on-device, WebGPU)</label>
+        <label><input type="radio" name="backend" value="fetch" /> HTTP endpoint (OpenAI-compatible)</label>
       </div>
-      <progress id="load-progress" value="0" max="1" style="display:none;"></progress>
+
+      <div id="webllm-pane" style="margin-top:8px;">
+        <div class="controls">
+          <select id="model">
+            <option value="Llama-3.2-1B-Instruct-q4f32_1-MLC" selected>Llama-3.2-1B (1129 MB)</option>
+            <option value="Qwen2.5-1.5B-Instruct-q4f32_1-MLC">Qwen2.5-1.5B (1889 MB)</option>
+            <option value="gemma-2-2b-it-q4f32_1-MLC-1k">Gemma-2-2B-it (1885 MB, 1k ctx)</option>
+            <option value="Qwen2.5-0.5B-Instruct-q4f32_1-MLC">Qwen2.5-0.5B (1060 MB)</option>
+            <option value="SmolLM2-360M-Instruct-q4f32_1-MLC">SmolLM2-360M (580 MB — fast, low quality)</option>
+          </select>
+          <span class="stat muted">q4f32 builds — work without WebGPU shader-f16 extension</span>
+          <button id="load">Load</button>
+          <span id="load-status" class="muted">no model loaded</span>
+        </div>
+        <progress id="load-progress" value="0" max="1" style="display:none;"></progress>
+      </div>
+
+      <div id="fetch-pane" style="margin-top:8px; display:none;">
+        <div class="controls">
+          <label class="stat">Endpoint <input id="endpoint" type="text" value="http://localhost:11434/v1" style="width:260px;" /></label>
+          <label class="stat">Model <input id="endpoint-model" type="text" value="gemma4:e2b" style="width:160px;" /></label>
+        </div>
+        <p class="stat muted" style="margin:4px 0 0;">
+          Local Ollama: <code>OLLAMA_ORIGINS='*' ollama serve</code> &nbsp;|&nbsp;
+          llama.cpp: <code>llama-server -m model.gguf --port 8080 --host 0.0.0.0</code>
+        </p>
+      </div>
 
       <h2>2 · Generate</h2>
       <textarea id="task" placeholder="Describe what to draw…">Make a rainbow row of 10 circles on a black background.</textarea>
@@ -90,14 +108,27 @@ repeat 8 {
 
   <script type="module">
     import {
-      validate, transpile, FEW_SHOTS, generate, CreativeCodingValidator, WebLLMAdapter,
-    } from "./harness.mjs?v=2";
+      validate, transpile, FEW_SHOTS, generate, CreativeCodingValidator, WebLLMAdapter, FetchAdapter,
+    } from "./harness.mjs?v=3";
     import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
     const $ = (id) => document.getElementById(id);
     let activeSketch = null;
     let engine = null;
     let grammarText = null;
+
+    function backend() {
+      return document.querySelector('input[name="backend"]:checked').value;
+    }
+
+    function syncBackendPane() {
+      const b = backend();
+      $("webllm-pane").style.display = b === "webllm" ? "" : "none";
+      $("fetch-pane").style.display  = b === "fetch"  ? "" : "none";
+      // For fetch backend, Generate is always available; for webllm, it
+      // unlocks after a model finishes loading.
+      $("gen").disabled = b === "webllm" ? !engine : false;
+    }
 
     async function ensureGrammar() {
       if (grammarText) return grammarText;
@@ -157,20 +188,30 @@ repeat 8 {
     }
 
     async function doGenerate() {
-      if (!engine) { $("gen-status").textContent = "load a model first"; return; }
       const task = $("task").value.trim();
       if (!task) { $("gen-status").textContent = "task is empty"; return; }
+
+      let llm;
+      const b = backend();
+      if (b === "webllm") {
+        if (!engine) { $("gen-status").textContent = "load a model first"; return; }
+        llm = new WebLLMAdapter(engine);
+      } else {
+        const endpoint = $("endpoint").value.trim();
+        const model = $("endpoint-model").value.trim();
+        if (!endpoint || !model) { $("gen-status").textContent = "endpoint + model required"; return; }
+        llm = new FetchAdapter({ endpoint, model });
+      }
 
       const btn = $("gen");
       btn.disabled = true;
       const gs = $("gen-status");
       gs.className = "muted";
-      gs.textContent = "generating…";
+      gs.textContent = `generating via ${b}…`;
       $("dsl-status").textContent = "";
       $("dsl-out").textContent = "";
 
       const grammar = await ensureGrammar();
-      const llm = new WebLLMAdapter(engine);
       const t0 = performance.now();
       try {
         const result = await generate({
@@ -205,6 +246,10 @@ repeat 8 {
     $("run").addEventListener("click", render);
     $("load").addEventListener("click", loadModel);
     $("gen").addEventListener("click", doGenerate);
+    for (const r of document.querySelectorAll('input[name="backend"]')) {
+      r.addEventListener("change", syncBackendPane);
+    }
+    syncBackendPane();
     render();
   </script>
 </body>

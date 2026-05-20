@@ -18,3 +18,5 @@ export type { PromptInputs } from "./prompt.js";
 export { generate } from "./noroshi.js";
 
 export { StubAdapter } from "./adapters/stub.js";
+export { FetchAdapter } from "./adapters/fetch.js";
+export type { FetchAdapterOptions } from "./adapters/fetch.js";

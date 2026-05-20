@@ -537,3 +537,50 @@ export class WebLLMAdapter {
     return Promise.all(Array.from({ length: n }, () => this.complete(prompt, opts)));
   }
 }
+
+// --- Fetch adapter (OpenAI-compatible HTTP, e.g. Ollama / llama-server / vLLM) ---
+
+export class FetchAdapter {
+  constructor({ endpoint, model, apiKey, id, headers } = {}) {
+    if (!endpoint) throw new Error("FetchAdapter: endpoint is required");
+    if (!model) throw new Error("FetchAdapter: model is required");
+    this.endpoint = String(endpoint).replace(/\/+$/, "");
+    this.model = model;
+    this.apiKey = apiKey;
+    this.id = id ?? `fetch:${model}`;
+    this.extraHeaders = headers ?? {};
+  }
+
+  async complete(prompt, opts = {}) {
+    const url = `${this.endpoint}/chat/completions`;
+    const headers = { "content-type": "application/json", ...this.extraHeaders };
+    if (this.apiKey) headers.authorization = `Bearer ${this.apiKey}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model: this.model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: opts.temperature ?? 0.2,
+        top_p: opts.topP ?? 0.95,
+        max_tokens: opts.maxTokens ?? 256,
+        stop: opts.stop,
+        stream: false,
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`FetchAdapter ${url} returned ${res.status}: ${text.slice(0, 500)}`);
+    }
+    const json = await res.json();
+    const content = json?.choices?.[0]?.message?.content;
+    if (typeof content !== "string") {
+      throw new Error(`FetchAdapter ${url} unexpected response: ${JSON.stringify(json).slice(0, 500)}`);
+    }
+    return _cleanCompletion(content);
+  }
+
+  async sampleN(prompt, n, opts = {}) {
+    return Promise.all(Array.from({ length: n }, () => this.complete(prompt, opts)));
+  }
+}
