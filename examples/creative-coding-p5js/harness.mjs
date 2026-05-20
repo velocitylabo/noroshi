@@ -500,19 +500,34 @@ export class CreativeCodingValidator {
 // instruct models: code fences, leading prose, trailing comments. Validator
 // + retry handles the rest.
 
-const FENCE_RE = /^\s*```[a-zA-Z]*\n?|\n?```\s*$/g;
+// Mirrors src/util/clean.ts. Priorities: fence body → first Output: block →
+// bare body with Task: markers. Keep in sync with the TS source.
+
+const FENCE_BLOCK_RE = /```[a-zA-Z]*\n?([\s\S]*?)```/;
+const FIRST_OUTPUT_RE = /(?:^|\n)\s*Output:\s*\n?([\s\S]*?)(?=\n\s*Task:|$)/;
+const LEADING_TASK_RE = /^\s*Task:[^\n]*\n+/;
+const NEXT_TASK_RE = /\n\s*Task:\s/;
 
 function _cleanCompletion(raw) {
-  let s = String(raw ?? "").replace(FENCE_RE, "");
-  // If the model emitted "Output:" again, take what follows.
-  const m = s.match(/(?:^|\n)\s*Output:\s*\n?([\s\S]*)$/);
-  if (m) s = m[1];
-  // Strip a leading task echo like "Task: ...\n".
-  s = s.replace(/^\s*Task:[^\n]*\n+/, "");
-  // Stop at a fresh "Task:" line — small models love to continue with more
-  // few-shot turns. Keep only the first program.
-  const next = s.match(/\n\s*Task:\s/);
-  if (next) s = s.slice(0, next.index);
+  let s = String(raw ?? "");
+
+  const fenceBlock = s.match(FENCE_BLOCK_RE);
+  if (fenceBlock) {
+    s = fenceBlock[1] ?? "";
+  } else {
+    const m = s.match(FIRST_OUTPUT_RE);
+    if (m) {
+      s = m[1] ?? "";
+    } else {
+      s = s.replace(LEADING_TASK_RE, "");
+      const next = s.match(NEXT_TASK_RE);
+      if (next && typeof next.index === "number") s = s.slice(0, next.index);
+    }
+  }
+
+  const nextTask = s.match(NEXT_TASK_RE);
+  if (nextTask && typeof nextTask.index === "number") s = s.slice(0, nextTask.index);
+
   return s.trim();
 }
 

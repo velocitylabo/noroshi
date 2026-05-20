@@ -79,12 +79,14 @@ async function runOne(label: string, opts: {
   responder: (callIndex: number) => string;
   retry?: number;
   expectOk: boolean;
+  rawCompletion?: boolean;
 }): Promise<boolean> {
   const handle = await startStubServer(opts.responder);
   try {
     const adapter = new FetchAdapter({
       endpoint: handle.url,
       model: "stub-model",
+      rawCompletion: opts.rawCompletion,
     });
     const result = await generate({
       task: "Draw a red circle in the middle.",
@@ -127,6 +129,33 @@ async function main(): Promise<void> {
   results.push(
     await runOne("invalid response, no retry → expect validation failure", {
       responder: () => INVALID_THEN_VALID[0]!,
+      expectOk: false,
+    }),
+  );
+
+  // Noisy: code fence + a hallucinated next few-shot turn. cleanCompletion
+  // should pick the FIRST Output: block, not the trailing garbage.
+  const NOISY_VALID = [
+    "```dsl",
+    VALID_DSL,
+    "```",
+    "",
+    "Task: imagined follow-up task",
+    "Output:",
+    "garbage_keyword 1 2 3",
+  ].join("\n");
+
+  results.push(
+    await runOne("noisy response (fence + extra Task/Output) → first DSL wins via cleanup", {
+      responder: () => NOISY_VALID,
+      expectOk: true,
+    }),
+  );
+
+  results.push(
+    await runOne("same noisy response with rawCompletion=true → validation fails", {
+      responder: () => NOISY_VALID,
+      rawCompletion: true,
       expectOk: false,
     }),
   );

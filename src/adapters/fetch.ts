@@ -1,4 +1,5 @@
 import type { LLMAdapter, LLMSampleOptions } from "../types.js";
+import { cleanCompletion } from "../util/clean.js";
 
 /**
  * Options for {@link FetchAdapter}.
@@ -29,6 +30,13 @@ export interface FetchAdapterOptions {
 
   /** Extra request headers. */
   headers?: Record<string, string>;
+
+  /**
+   * Disable the default LLM-noise cleanup applied to completion content
+   * (code fences, echoed prompt frame, hallucinated next few-shot turn).
+   * Set to `true` if your endpoint already returns a clean DSL string.
+   */
+  rawCompletion?: boolean;
 }
 
 interface ChatCompletionResponse {
@@ -50,6 +58,7 @@ export class FetchAdapter implements LLMAdapter {
   private readonly apiKey?: string;
   private readonly fetchImpl: typeof fetch;
   private readonly extraHeaders: Record<string, string>;
+  private readonly cleanup: (s: string) => string;
 
   constructor(opts: FetchAdapterOptions) {
     this.endpoint = opts.endpoint.replace(/\/+$/, "");
@@ -58,6 +67,7 @@ export class FetchAdapter implements LLMAdapter {
     this.id = opts.id ?? `fetch:${opts.model}`;
     this.fetchImpl = opts.fetch ?? fetch;
     this.extraHeaders = opts.headers ?? {};
+    this.cleanup = opts.rawCompletion ? (s) => s : cleanCompletion;
   }
 
   async complete(prompt: string, opts: LLMSampleOptions = {}): Promise<string> {
@@ -96,6 +106,6 @@ export class FetchAdapter implements LLMAdapter {
         `FetchAdapter ${url} unexpected response: ${JSON.stringify(json).slice(0, 500)}`,
       );
     }
-    return content;
+    return this.cleanup(content);
   }
 }
