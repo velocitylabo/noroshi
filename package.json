@@ -19,7 +19,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"no tests yet\" && exit 0"
+    "test": "tsx examples/creative-coding-p5js/test.ts && tsx examples/creative-coding-p5js/test-fetch.ts && tsx examples/creative-coding-p5js/test-safety.ts"
   },
   "keywords": [
     "llm",
