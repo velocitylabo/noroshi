@@ -265,9 +265,13 @@ export function transpile(src: string): string {
   const toks = lex(src);
   const { setup, tick, top, hadTick } = split(toks);
 
+  // When a program mixes top-level stmts with a tick block, the top-level
+  // stmts run once and become part of setup() (per DESIGN.md). Without a tick
+  // block they go straight into draw() and we noLoop() at the end of setup.
   const setupBody = [
     `createCanvas(${CANVAS_W}, ${CANVAS_H});`,
     ...setup,
+    ...(hadTick ? top : []),
     ...(hadTick ? [] : ["noLoop();"]),
   ].join("\n  ");
 

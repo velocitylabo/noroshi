@@ -318,6 +318,7 @@ export function transpile(src) {
   const setupBody = [
     `createCanvas(400, 400);`,
     ...setup,
+    ...(hadTick ? top : []),
     ...(hadTick ? [] : ["noLoop();"]),
   ].join("\n  ");
   const drawBody = (hadTick ? tick : top).join("\n  ") || "/* empty */";

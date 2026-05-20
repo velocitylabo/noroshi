@@ -55,5 +55,37 @@ for (const [label, src] of NEG) {
   }
 }
 
+// Regression: mixed top-level + tick block must route top-level stmts to
+// setup() (run-once) instead of dropping them.
+const MIXED_SRC = [
+  "background black",
+  "tick {",
+  "  fill yellow",
+  "  circle mx my 30",
+  "}",
+].join("\n");
+{
+  const r = v.validate(MIXED_SRC);
+  if (!r.ok) {
+    console.error(`FAIL mixed-block validator: ${r.error}`);
+    fail++;
+  } else {
+    const js = transpile(MIXED_SRC);
+    const setupBlock = js.match(/function setup\(\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
+    const drawBlock = js.match(/function draw\(\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
+    const errs: string[] = [];
+    if (!setupBlock.includes("background(")) errs.push("setup() missing background()");
+    if (drawBlock.includes("background(")) errs.push("draw() unexpectedly has background()");
+    if (!drawBlock.includes("circle(")) errs.push("draw() missing circle()");
+    if (errs.length > 0) {
+      console.error(`FAIL mixed-block transpile:\n  ${errs.join("\n  ")}\n${js}`);
+      fail++;
+    } else {
+      console.log("ok-mixed: top-level + tick routes top-level stmt to setup()");
+      pass++;
+    }
+  }
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
