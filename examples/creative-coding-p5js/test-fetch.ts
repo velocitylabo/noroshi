@@ -1,4 +1,4 @@
-import { createServer, type Server } from "node:http";
+import { createServer, type Server, type IncomingHttpHeaders } from "node:http";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,26 +34,47 @@ const INVALID_THEN_VALID: string[] = [
   VALID_DSL,
 ];
 
+interface RequestRecord {
+  method: string;
+  headers: IncomingHttpHeaders;
+  body: string;
+}
+
+interface StubResponse {
+  status?: number;
+  body: string;
+  headers?: Record<string, string>;
+}
+
 interface ServerHandle {
   server: Server;
   url: string;
-  calls: number;
+  requests: RequestRecord[];
 }
 
-function startStubServer(responder: (callIndex: number, body: unknown) => string): Promise<ServerHandle> {
+function startStubServer(
+  handler: (req: RequestRecord, callIndex: number) => StubResponse,
+): Promise<ServerHandle> {
   return new Promise((resolveP, rejectP) => {
-    let calls = 0;
+    const requests: RequestRecord[] = [];
     const server = createServer((req, res) => {
       let raw = "";
       req.on("data", (c) => (raw += c));
       req.on("end", () => {
+        const record: RequestRecord = {
+          method: req.method ?? "GET",
+          headers: req.headers,
+          body: raw,
+        };
+        const i = requests.length;
+        requests.push(record);
         try {
-          const body = raw ? JSON.parse(raw) : null;
-          const content = responder(calls, body);
-          calls++;
-          const payload = { choices: [{ message: { content } }] };
-          res.writeHead(200, { "content-type": "application/json" });
-          res.end(JSON.stringify(payload));
+          const r = handler(record, i);
+          res.writeHead(r.status ?? 200, {
+            "content-type": "application/json",
+            ...r.headers,
+          });
+          res.end(r.body);
         } catch (e) {
           res.writeHead(500, { "content-type": "text/plain" });
           res.end(String(e));
@@ -63,16 +84,22 @@ function startStubServer(responder: (callIndex: number, body: unknown) => string
     server.on("error", rejectP);
     server.listen(0, "127.0.0.1", () => {
       const addr = server.address() as AddressInfo;
-      const handle: ServerHandle = {
+      resolveP({
         server,
         url: `http://127.0.0.1:${addr.port}/v1`,
-        get calls() {
-          return calls;
-        },
-      } as ServerHandle;
-      resolveP(handle);
+        requests,
+      });
     });
   });
+}
+
+/** Convenience: turn a string→string responder into an OpenAI-shaped 200. */
+function jsonOk(content: string): StubResponse {
+  return { body: JSON.stringify({ choices: [{ message: { content } }] }) };
+}
+
+async function closeServer(handle: ServerHandle): Promise<void> {
+  await new Promise<void>((r) => handle.server.close(() => r()));
 }
 
 async function runOne(label: string, opts: {
@@ -81,7 +108,7 @@ async function runOne(label: string, opts: {
   expectOk: boolean;
   rawCompletion?: boolean;
 }): Promise<boolean> {
-  const handle = await startStubServer(opts.responder);
+  const handle = await startStubServer((_req, i) => jsonOk(opts.responder(i)));
   try {
     const adapter = new FetchAdapter({
       endpoint: handle.url,
@@ -104,8 +131,28 @@ async function runOne(label: string, opts: {
     );
     return pass;
   } finally {
-    await new Promise<void>((r) => handle.server.close(() => r()));
+    await closeServer(handle);
   }
+}
+
+async function expectThrows(
+  label: string,
+  fn: () => Promise<unknown>,
+  mustInclude?: string,
+): Promise<boolean> {
+  try {
+    await fn();
+  } catch (e) {
+    const msg = (e as Error).message ?? String(e);
+    if (mustInclude && !msg.includes(mustInclude)) {
+      console.error(`FAIL: ${label} — message lacked "${mustInclude}": ${msg}`);
+      return false;
+    }
+    console.log(`ok: ${label} → threw "${msg.slice(0, 100)}"`);
+    return true;
+  }
+  console.error(`FAIL: ${label} — expected throw, but call returned`);
+  return false;
 }
 
 async function main(): Promise<void> {
@@ -159,6 +206,84 @@ async function main(): Promise<void> {
       expectOk: false,
     }),
   );
+
+  // 5xx response: FetchAdapter must throw and the error message must
+  // carry the upstream status + body snippet to make debugging tractable.
+  {
+    const handle = await startStubServer(() => ({
+      status: 503,
+      headers: { "content-type": "text/plain" },
+      body: "upstream model is loading",
+    }));
+    const adapter = new FetchAdapter({ endpoint: handle.url, model: "stub-model" });
+    results.push(
+      await expectThrows(
+        "5xx surfaces as adapter throw",
+        () =>
+          generate({
+            task: "Draw a red circle.",
+            grammar: GRAMMAR,
+            examples: FEW_SHOTS,
+            llm: adapter,
+            validator: new CreativeCodingValidator(),
+          }),
+        "503",
+      ),
+    );
+    await closeServer(handle);
+  }
+
+  // 200 with the wrong shape: no choices, or message.content not a string.
+  // Adapter must throw with a self-explanatory error rather than silently
+  // returning undefined / "[object Object]".
+  {
+    const handle = await startStubServer(() => ({
+      body: JSON.stringify({ choices: [{ message: { reasoning: "thinking..." } }] }),
+    }));
+    const adapter = new FetchAdapter({ endpoint: handle.url, model: "stub-model" });
+    results.push(
+      await expectThrows(
+        "missing message.content throws with shape hint",
+        () =>
+          generate({
+            task: "Draw a red circle.",
+            grammar: GRAMMAR,
+            examples: FEW_SHOTS,
+            llm: adapter,
+            validator: new CreativeCodingValidator(),
+          }),
+        "unexpected response",
+      ),
+    );
+    await closeServer(handle);
+  }
+
+  // apiKey forwarding: the option lands as "Authorization: Bearer <key>"
+  // on the wire. Verify by inspecting the request the stub server received.
+  {
+    const handle = await startStubServer(() => jsonOk(VALID_DSL));
+    const adapter = new FetchAdapter({
+      endpoint: handle.url,
+      model: "stub-model",
+      apiKey: "sk-test-abc",
+    });
+    await generate({
+      task: "Draw a red circle.",
+      grammar: GRAMMAR,
+      examples: FEW_SHOTS,
+      llm: adapter,
+      validator: new CreativeCodingValidator(),
+    });
+    const auth = handle.requests[0]?.headers.authorization;
+    const ok = auth === "Bearer sk-test-abc";
+    if (ok) {
+      console.log(`ok: apiKey forwarded as Authorization header`);
+    } else {
+      console.error(`FAIL: apiKey forwarding — got "${auth}", want "Bearer sk-test-abc"`);
+    }
+    results.push(ok);
+    await closeServer(handle);
+  }
 
   const passed = results.filter(Boolean).length;
   const failed = results.length - passed;
