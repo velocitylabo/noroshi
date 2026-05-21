@@ -22,3 +22,5 @@ export { FetchAdapter } from "./adapters/fetch.js";
 export type { FetchAdapterOptions } from "./adapters/fetch.js";
 
 export { cleanCompletion } from "./util/clean.js";
+
+export { GrammarAwareRanker } from "./rankers/grammar.js";

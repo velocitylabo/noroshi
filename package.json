@@ -19,7 +19,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "tsx examples/creative-coding-p5js/test.ts && tsx examples/creative-coding-p5js/test-fetch.ts && tsx examples/creative-coding-p5js/test-safety.ts",
+    "test": "tsx examples/creative-coding-p5js/test.ts && tsx examples/creative-coding-p5js/test-fetch.ts && tsx examples/creative-coding-p5js/test-safety.ts && tsx examples/creative-coding-p5js/test-ranker.ts",
     "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "engines": {
