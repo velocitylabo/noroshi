@@ -1,6 +1,6 @@
 {
   "name": "noroshi",
-  "version": "0.0.0-pre.2",
+  "version": "0.0.0-pre.3",
   "description": "Grammar Prompting for browser LLMs — constrained DSL output without fine-tuning",
   "type": "module",
   "main": "dist/index.js",
@@ -19,7 +19,11 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "tsx examples/creative-coding-p5js/test.ts && tsx examples/creative-coding-p5js/test-fetch.ts && tsx examples/creative-coding-p5js/test-safety.ts"
+    "test": "tsx examples/creative-coding-p5js/test.ts && tsx examples/creative-coding-p5js/test-fetch.ts && tsx examples/creative-coding-p5js/test-safety.ts",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "keywords": [
     "llm",
