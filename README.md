@@ -6,7 +6,63 @@
 
 ## Status
 
-**Early development.** API and scope are subject to change.
+**Early development.** API and scope are subject to change. Pre-release versions are published to the `next` dist-tag — pin a specific version when installing.
+
+## Install
+
+```bash
+npm install noroshi@next
+```
+
+Requires Node 20+ for development; for the library itself any modern bundler / runtime that supports ES2022 + ESM works.
+
+## Quick start
+
+```ts
+import { generate, StubAdapter, type FewShotExample } from "noroshi";
+
+const grammar = `
+start:    greeting NAME
+greeting: "hello" | "hi" | "hey"
+NAME:     /[A-Za-z]+/
+`;
+
+const examples: FewShotExample[] = [
+  { input: "Greet Bob.",       output: "hello Bob" },
+  { input: "Say hi to Eve.",   output: "hi Eve"    },
+];
+
+const result = await generate({
+  task: "Greet Alice.",
+  grammar,
+  examples,
+  llm: new StubAdapter(() => "hello Alice"), // swap for FetchAdapter / WebLLM
+  validator: {
+    id: "regex",
+    validate: (s) =>
+      /^(hello|hi|hey) [A-Za-z]+$/.test(s.trim())
+        ? { ok: true }
+        : { ok: false, error: "must match `(hello|hi|hey) NAME`" },
+  },
+  retry: { maxAttempts: 3, includeErrorInPrompt: true },
+});
+
+console.log(result.output);     // → "hello Alice"
+console.log(result.attempts);   // → 1
+```
+
+For a real LLM, swap `StubAdapter` for one of the bundled adapters:
+
+```ts
+import { FetchAdapter } from "noroshi";
+
+const llm = new FetchAdapter({
+  endpoint: "http://localhost:11434/v1", // Ollama, llama-server, vLLM, …
+  model: "qwen2.5:1.5b",
+});
+```
+
+A WebLLM-driven browser example (with grammar injection, retry-with-feedback, and a p5.js DSL transpiler) lives under `examples/creative-coding-p5js/` in the [source repo](https://github.com/velocitylabo/noroshi).
 
 ## Why
 
