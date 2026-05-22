@@ -167,7 +167,92 @@ Now we can read the table row by row.
 
 **Llama, all five columns, exactly zero.** The Llama row is the most interesting cell of the table because the failure mode is so specific. Inspect [`results-llama3.2_1b.json`](https://github.com/velocitylabo/noroshi/blob/main/examples/creative-coding-p5js/bench/results-llama3.2_1b.json) and every output across every ablation starts with the literal token **`start`** — followed by the lex error `unknown identifier "start" at offset 0`. The model has memorised the grammar's leading rule name (`start: block+`) and emits `start` as its first token. Retry doesn't fix it: the next two attempts also begin with `start`. Best-of-3 doesn't fix it either: all three parallel samples begin with `start`. The pipeline depends on having any non-zero probability mass on grammar-valid continuations to amplify — when the model is anchored on a single wrong token with overwhelming confidence, there is nothing for retry or rerank to grip. **noroshi can amplify a model's grammar prior, but it cannot create one.**
 
-<!-- TODO §6 — The code that does it (~400 words) -->
+## §6 — The code that does it
+
+Three pieces, each small enough to fit on screen.
+
+### 6.1 `buildPrompt` — derivation-first few-shot
+
+The entire prompt construction is one function:
+
+```ts
+export function buildPrompt(p: PromptInputs): string {
+  const parts: string[] = [];
+  parts.push(p.systemPrompt ?? DEFAULT_SYSTEM);
+  parts.push("\nGrammar (BNF/EBNF):\n```");
+  parts.push(p.grammar.trim());
+  parts.push("```");
+  if (p.examples.length > 0) {
+    parts.push("\nExamples:");
+    for (const ex of p.examples) {
+      parts.push(`Task: ${ex.input}`);
+      if (ex.derivation) parts.push(`Derivation:\n${ex.derivation.trim()}`);
+      parts.push(`Output:\n${ex.output.trim()}\n`);
+    }
+  }
+  if (p.errorFeedback) {
+    parts.push(`\nPrior attempt failed validation with: ${p.errorFeedback}\n` +
+               `Produce a new output that fixes this error.\n`);
+  }
+  parts.push(`\nTask: ${p.task}`);
+  parts.push("Output:");
+  return parts.join("\n");
+}
+```
+
+A single string. No chat-message scaffolding, no per-provider templating. Every column in the table from `+grammar` through `+rerank` uses this exact function — the columns differ only in what gets passed in.
+
+### 6.2 Retry with feedback
+
+The retry loop is the next twenty lines, inside `generate()`:
+
+```ts
+for (let attempt = 0; attempt < maxAttempts; attempt++) {
+  const prompt = buildPrompt({
+    task, grammar, examples,
+    errorFeedback: includeErr ? lastError : undefined,
+  });
+  const candidates = await sample(opts.llm, prompt, n, opts.sample);
+  const picked = await pick(candidates, opts);
+
+  if (picked.validation?.ok) return { output: picked.output, attempts, ... };
+
+  lastError = picked.validation && !picked.validation.ok
+    ? picked.validation.error
+    : "unknown";
+}
+```
+
+The crucial line is `errorFeedback: includeErr ? lastError : undefined`. When validation fails on attempt *n*, the *n+1*-th call to `buildPrompt` will inject the validator's exact error string (`rgb expects "," at offset 30, got ")"`) into the prompt. That's what got us +20pt on the Qwen row.
+
+### 6.3 `GrammarAwareRanker`
+
+The ranker that scores best-of-N candidates is the smallest piece — twenty lines for the whole class:
+
+```ts
+export class GrammarAwareRanker implements Ranker {
+  readonly id = "grammar-aware";
+
+  async rank(
+    candidates: string[],
+    context?: { validations?: ValidationResult[] },
+  ): Promise<number[]> {
+    const validations = context?.validations;
+    return candidates.map((c, i) => {
+      const v = validations?.[i];
+      if (!v) return c.length;
+      if (v.ok) return 0;
+      const offset = typeof v.errorOffset === "number" ? v.errorOffset : 0;
+      return Math.max(1, c.length - offset);
+    });
+  }
+}
+```
+
+Three rules. Validation succeeds → score 0 (always best). Validation fails → score equals how much input the parser had to throw away (`len - errorOffset`). No validation context → fall back to length (prefer shorter, on the heuristic that a short hallucination is less bad than a long one). The whole reranker is what got us the final +10pt on Qwen and the +30pt on Gemma.
+
+Three pieces, ~200 lines together, no fine-tuning, no logit access, no model-specific anything. Everything else in the noroshi repo — adapters, the example app, the safety checker around `new Function`, the test suite — is plumbing around these three shapes.
+
 <!-- TODO §7 — What this doesn't fix (~200 words) -->
 <!-- TODO §8 — Try it (~100 words) -->
 <!-- TODO §9 — Closing (~150 words) -->
