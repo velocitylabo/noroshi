@@ -42,7 +42,9 @@ interface Tok {
   pos: number;
 }
 
-function lex(src: string): Tok[] | { error: string } {
+interface LexError { error: string; errorOffset: number }
+
+function lex(src: string): Tok[] | LexError {
   const toks: Tok[] = [];
   let i = 0;
   while (i < src.length) {
@@ -84,10 +86,10 @@ function lex(src: string): Tok[] | { error: string } {
       else if (COLOR_NAMES.has(w)) toks.push({ kind: "color", value: w, pos: start });
       else if (VARS.has(w)) toks.push({ kind: "var", value: w, pos: start });
       else if (FUNCS.has(w)) toks.push({ kind: "func", value: w, pos: start });
-      else return { error: `unknown identifier "${w}" at offset ${start}` };
+      else return { error: `unknown identifier "${w}" at offset ${start}`, errorOffset: start };
       continue;
     }
-    return { error: `unexpected character "${c}" at offset ${i}` };
+    return { error: `unexpected character "${c}" at offset ${i}`, errorOffset: i };
   }
   return toks;
 }
@@ -106,10 +108,25 @@ const ARITY: Record<string, number> = {
 
 class Parser {
   private p = 0;
+  private lastPos = 0;
   constructor(private readonly toks: Tok[]) {}
 
   peek(o = 0): Tok | undefined { return this.toks[this.p + o]; }
-  eat(): Tok | undefined { return this.toks[this.p++]; }
+  eat(): Tok | undefined {
+    const t = this.toks[this.p++];
+    if (t) this.lastPos = t.pos;
+    return t;
+  }
+
+  /** Build a failure with errorOffset filled from the supplied pos or the
+   *  most recently consumed token's position. */
+  private fail(error: string, posHint?: number): ValidationResult {
+    return {
+      ok: false,
+      error,
+      errorOffset: typeof posHint === "number" ? posHint : this.lastPos,
+    };
+  }
 
   parse(): ValidationResult {
     while (this.p < this.toks.length) {
@@ -132,7 +149,7 @@ class Parser {
   braceBlock(): ValidationResult {
     const open = this.eat();
     if (!open || open.kind !== "lbrace") {
-      return { ok: false, error: `expected "{" at offset ${open?.pos ?? -1}` };
+      return this.fail(`expected "{" at offset ${open?.pos ?? -1}`, open?.pos);
     }
     while (this.peek() && this.peek()!.kind !== "rbrace") {
       const r = this.stmt();
@@ -140,16 +157,16 @@ class Parser {
     }
     const close = this.eat();
     if (!close || close.kind !== "rbrace") {
-      return { ok: false, error: "unbalanced { ... } block" };
+      return this.fail("unbalanced { ... } block");
     }
     return { ok: true };
   }
 
   stmt(): ValidationResult {
     const t = this.peek();
-    if (!t) return { ok: false, error: "unexpected end of input" };
+    if (!t) return this.fail("unexpected end of input");
     if (t.kind !== "kw") {
-      return { ok: false, error: `expected a statement keyword at offset ${t.pos}, got "${t.value}"` };
+      return this.fail(`expected a statement keyword at offset ${t.pos}, got "${t.value}"`, t.pos);
     }
     this.eat();
     switch (t.value) {
@@ -163,7 +180,7 @@ class Parser {
       case "pop":
         return { ok: true };
       case "rgb":
-        return { ok: false, error: `"rgb" cannot start a statement (use it after fill/stroke/background)` };
+        return this.fail(`"rgb" cannot start a statement (use it after fill/stroke/background)`, t.pos);
       case "rotate":
       case "translate":
       case "circle":
@@ -180,38 +197,38 @@ class Parser {
       case "repeat": {
         const count = this.eat();
         if (!count || count.kind !== "num" || !/^\d+$/.test(count.value)) {
-          return { ok: false, error: `repeat expects a positive integer at offset ${count?.pos ?? -1}` };
+          return this.fail(`repeat expects a positive integer at offset ${count?.pos ?? -1}`, count?.pos);
         }
         return this.braceBlock();
       }
       case "setup":
       case "tick":
-        return { ok: false, error: `"${t.value}" block is only valid at the top level` };
+        return this.fail(`"${t.value}" block is only valid at the top level`, t.pos);
     }
-    return { ok: false, error: `unhandled keyword "${t.value}"` };
+    return this.fail(`unhandled keyword "${t.value}"`, t.pos);
   }
 
   color(): ValidationResult {
     const t = this.peek();
-    if (!t) return { ok: false, error: "expected color" };
+    if (!t) return this.fail("expected color");
     if (t.kind === "color") { this.eat(); return { ok: true }; }
     if (t.kind === "kw" && t.value === "rgb") {
       this.eat();
       const lp = this.eat();
-      if (!lp || lp.kind !== "lparen") return { ok: false, error: `rgb expects "(" at offset ${lp?.pos ?? -1}` };
+      if (!lp || lp.kind !== "lparen") return this.fail(`rgb expects "(" at offset ${lp?.pos ?? -1}`, lp?.pos);
       for (let k = 0; k < 3; k++) {
         const r = this.expr();
         if (!r.ok) return r;
         if (k < 2) {
           const c = this.eat();
-          if (!c || c.kind !== "comma") return { ok: false, error: `rgb expects "," at offset ${c?.pos ?? -1}` };
+          if (!c || c.kind !== "comma") return this.fail(`rgb expects "," at offset ${c?.pos ?? -1}`, c?.pos);
         }
       }
       const rp = this.eat();
-      if (!rp || rp.kind !== "rparen") return { ok: false, error: `rgb expects ")" at offset ${rp?.pos ?? -1}` };
+      if (!rp || rp.kind !== "rparen") return this.fail(`rgb expects ")" at offset ${rp?.pos ?? -1}`, rp?.pos);
       return { ok: true };
     }
-    return { ok: false, error: `expected color name or rgb(...) at offset ${t.pos}, got "${t.value}"` };
+    return this.fail(`expected color name or rgb(...) at offset ${t.pos}, got "${t.value}"`, t.pos);
   }
 
   /** expr → term (("+"|"-") term)* */
@@ -240,18 +257,18 @@ class Parser {
 
   factor(): ValidationResult {
     const t = this.eat();
-    if (!t) return { ok: false, error: "expected expression, got end of input" };
+    if (!t) return this.fail("expected expression, got end of input");
     if (t.kind === "num" || t.kind === "var") return { ok: true };
     if (t.kind === "lparen") {
       const r = this.expr();
       if (!r.ok) return r;
       const rp = this.eat();
-      if (!rp || rp.kind !== "rparen") return { ok: false, error: `expected ")" at offset ${rp?.pos ?? -1}` };
+      if (!rp || rp.kind !== "rparen") return this.fail(`expected ")" at offset ${rp?.pos ?? -1}`, rp?.pos);
       return { ok: true };
     }
     if (t.kind === "func") {
       const lp = this.eat();
-      if (!lp || lp.kind !== "lparen") return { ok: false, error: `${t.value} expects "(" at offset ${lp?.pos ?? -1}` };
+      if (!lp || lp.kind !== "lparen") return this.fail(`${t.value} expects "(" at offset ${lp?.pos ?? -1}`, lp?.pos);
       // at least one arg
       const r = this.expr();
       if (!r.ok) return r;
@@ -261,10 +278,10 @@ class Parser {
         if (!rk.ok) return rk;
       }
       const rp = this.eat();
-      if (!rp || rp.kind !== "rparen") return { ok: false, error: `${t.value} expects ")" at offset ${rp?.pos ?? -1}` };
+      if (!rp || rp.kind !== "rparen") return this.fail(`${t.value} expects ")" at offset ${rp?.pos ?? -1}`, rp?.pos);
       return { ok: true };
     }
-    return { ok: false, error: `expected number, variable, function call, or "(...)" at offset ${t.pos}, got "${t.value}"` };
+    return this.fail(`expected number, variable, function call, or "(...)" at offset ${t.pos}, got "${t.value}"`, t.pos);
   }
 }
 
@@ -273,7 +290,9 @@ export class CreativeCodingValidator implements Validator {
 
   validate(src: string): ValidationResult {
     const toks = lex(src);
-    if (!Array.isArray(toks)) return { ok: false, error: toks.error };
+    if (!Array.isArray(toks)) {
+      return { ok: false, error: toks.error, errorOffset: toks.errorOffset };
+    }
     return new Parser(toks).parse();
   }
 }

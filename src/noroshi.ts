@@ -20,6 +20,7 @@ export async function generate(opts: GenerateOptions): Promise<GenerateResult> {
   let lastError: string | undefined;
   let lastCandidates: string[] | undefined;
   let lastValidation: ValidationResult | undefined;
+  let lastOutput = "";
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const prompt = buildPrompt({
@@ -35,8 +36,9 @@ export async function generate(opts: GenerateOptions): Promise<GenerateResult> {
     attempts += candidates.length;
     lastCandidates = candidates;
 
-    const picked = pick(candidates, opts);
+    const picked = await pick(candidates, opts);
     lastValidation = picked.validation;
+    lastOutput = picked.output;
 
     if (!opts.validator) {
       return {
@@ -57,8 +59,10 @@ export async function generate(opts: GenerateOptions): Promise<GenerateResult> {
     lastError = picked.validation && !picked.validation.ok ? picked.validation.error : "unknown";
   }
 
+  // Out of retries: surface the best candidate the ranker (or first-valid)
+  // picked on the final attempt, not just candidate #0.
   return {
-    output: lastCandidates?.[0] ?? "",
+    output: lastOutput,
     attempts,
     candidates: lastCandidates,
     validation: lastValidation,
@@ -85,32 +89,30 @@ interface Picked {
   validation?: ValidationResult;
 }
 
-function pick(candidates: string[], opts: GenerateOptions): Picked {
+async function pick(candidates: string[], opts: GenerateOptions): Promise<Picked> {
   if (!opts.validator) {
     return { output: candidates[0] ?? "" };
   }
 
+  const validations = candidates.map((c) => opts.validator!.validate(c));
+
   if (opts.selfConsistency?.ranker) {
-    // Custom ranker — pick the lowest score that also validates.
-    // (Async ranker integration would require restructuring this helper to
-    // async; deferred until ranker plugin is needed.)
-    // For now: validate each, keep valid set, return first.
-    const valid = candidates
-      .map((c) => ({ c, v: opts.validator!.validate(c) }))
-      .filter((x) => x.v.ok);
-    if (valid.length > 0) {
-      const first = valid[0]!;
-      return { output: first.c, validation: first.v };
+    const scores = await opts.selfConsistency.ranker.rank(candidates, { validations });
+    let bestIdx = 0;
+    let bestScore = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < candidates.length; i++) {
+      const s = scores[i] ?? Number.POSITIVE_INFINITY;
+      if (s < bestScore) {
+        bestScore = s;
+        bestIdx = i;
+      }
     }
-    const firstWithErr = candidates[0] ?? "";
-    return { output: firstWithErr, validation: opts.validator.validate(firstWithErr) };
+    return { output: candidates[bestIdx] ?? "", validation: validations[bestIdx] };
   }
 
   // Default: first-valid-wins.
-  for (const c of candidates) {
-    const v = opts.validator.validate(c);
-    if (v.ok) return { output: c, validation: v };
+  for (let i = 0; i < candidates.length; i++) {
+    if (validations[i]?.ok) return { output: candidates[i] ?? "", validation: validations[i] };
   }
-  const fallback = candidates[0] ?? "";
-  return { output: fallback, validation: opts.validator.validate(fallback) };
+  return { output: candidates[0] ?? "", validation: validations[0] };
 }

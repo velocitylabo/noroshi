@@ -483,6 +483,7 @@ export async function generate(opts) {
   let lastError;
   let lastCandidates;
   let lastValidation;
+  let lastOutput = "";
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const prompt = buildPrompt({
@@ -502,8 +503,9 @@ export async function generate(opts) {
 
     if (opts.onCandidates) opts.onCandidates(candidates, attempt);
 
-    const picked = _pick(candidates, opts);
+    const picked = await _pick(candidates, opts);
     lastValidation = picked.validation;
+    lastOutput = picked.output;
 
     if (!opts.validator) {
       return { output: picked.output, attempts, candidates: n > 1 ? candidates : undefined };
@@ -520,7 +522,7 @@ export async function generate(opts) {
   }
 
   return {
-    output: lastCandidates?.[0] ?? "",
+    output: lastOutput,
     attempts,
     candidates: lastCandidates,
     validation: lastValidation,
@@ -533,14 +535,42 @@ async function _sample(llm, prompt, n, opts) {
   return Promise.all(Array.from({ length: n }, () => llm.complete(prompt, opts)));
 }
 
-function _pick(candidates, opts) {
+async function _pick(candidates, opts) {
   if (!opts.validator) return { output: candidates[0] ?? "" };
-  for (const c of candidates) {
-    const v = opts.validator.validate(c);
-    if (v.ok) return { output: c, validation: v };
+
+  const validations = candidates.map((c) => opts.validator.validate(c));
+
+  if (opts.selfConsistency?.ranker) {
+    const scores = await opts.selfConsistency.ranker.rank(candidates, { validations });
+    let bestIdx = 0;
+    let bestScore = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < candidates.length; i++) {
+      const s = scores[i] ?? Number.POSITIVE_INFINITY;
+      if (s < bestScore) { bestScore = s; bestIdx = i; }
+    }
+    return { output: candidates[bestIdx] ?? "", validation: validations[bestIdx] };
   }
-  const fallback = candidates[0] ?? "";
-  return { output: fallback, validation: opts.validator.validate(fallback) };
+
+  for (let i = 0; i < candidates.length; i++) {
+    if (validations[i]?.ok) return { output: candidates[i] ?? "", validation: validations[i] };
+  }
+  return { output: candidates[0] ?? "", validation: validations[0] };
+}
+
+// Mirrors src/rankers/grammar.ts. Score: valid → 0; invalid w/ offset →
+// max(1, len - errorOffset); no validation → length.
+export class GrammarAwareRanker {
+  constructor() { this.id = "grammar-aware"; }
+  async rank(candidates, context) {
+    const validations = context?.validations;
+    return candidates.map((c, i) => {
+      const v = validations?.[i];
+      if (!v) return c.length;
+      if (v.ok) return 0;
+      const offset = typeof v.errorOffset === "number" ? v.errorOffset : 0;
+      return Math.max(1, c.length - offset);
+    });
+  }
 }
 
 // --- validator wrapper that conforms to the noroshi Validator interface ---

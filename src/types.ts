@@ -65,7 +65,17 @@ export interface LLMAdapter {
 /** Result of validating one candidate output. */
 export type ValidationResult =
   | { ok: true; ast?: unknown }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      /**
+       * Optional character offset in the source where parsing failed.
+       * Validators that can report this enable {@link GrammarAwareRanker} to
+       * prefer candidates that progressed further before failing — useful when
+       * none of the N candidates fully validate but one is "closer".
+       */
+      errorOffset?: number;
+    };
 
 /** Pluggable validator. Sync because parsers are typically fast and pure. */
 export interface Validator {
@@ -79,10 +89,17 @@ export interface Validator {
  * Lower score = better (consistent with "loss"-style semantics).
  * If absent, noroshi uses majority-vote-by-validation: pick the first
  * candidate that passes the validator.
+ *
+ * Rankers receive validation results when a {@link Validator} is configured,
+ * so they can score candidates relative to grammar progress without
+ * re-running the validator.
  */
 export interface Ranker {
   readonly id: string;
-  rank(candidates: string[]): Promise<number[]>;
+  rank(
+    candidates: string[],
+    context?: { validations?: ValidationResult[] },
+  ): Promise<number[]>;
 }
 
 /** Options for a single generation. */
