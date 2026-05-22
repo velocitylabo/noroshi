@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 280" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+  <rect width="800" height="280" fill="#f6f8fa"/>
+
+  <!-- Pane 1: Task -->
+  <g transform="translate(20, 30)">
+    <rect width="220" height="220" rx="8" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+    <text x="14" y="26" font-size="11" fill="#57606a" font-weight="700" letter-spacing="0.5">TASK</text>
+    <text x="14" y="64" font-size="13" fill="#1f2328">Three pink circles</text>
+    <text x="14" y="84" font-size="13" fill="#1f2328">in a horizontal row.</text>
+    <text x="14" y="206" font-size="10" fill="#8c959f">noroshi.generate(...)</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <g transform="translate(247, 140)">
+    <line x1="0" y1="0" x2="38" y2="0" stroke="#0969da" stroke-width="2.5"/>
+    <polygon points="38,-6 50,0 38,6" fill="#0969da"/>
+  </g>
+
+  <!-- Pane 2: DSL -->
+  <g transform="translate(295, 30)">
+    <rect width="220" height="220" rx="8" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+    <text x="14" y="26" font-size="11" fill="#57606a" font-weight="700" letter-spacing="0.5">VALIDATED DSL</text>
+    <text x="14" y="64" font-size="12.5" fill="#1f2328">background white</text>
+    <text x="14" y="84" font-size="12.5" fill="#cf222e">fill pink</text>
+    <text x="14" y="104" font-size="12.5" fill="#8250df">repeat 3 {</text>
+    <text x="14" y="124" font-size="12.5" fill="#1f2328">  circle i * 100 + 50 h/2 30</text>
+    <text x="14" y="144" font-size="12.5" fill="#8250df">}</text>
+    <text x="14" y="206" font-size="10" fill="#8c959f">transpile → p5.js</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <g transform="translate(522, 140)">
+    <line x1="0" y1="0" x2="38" y2="0" stroke="#0969da" stroke-width="2.5"/>
+    <polygon points="38,-6 50,0 38,6" fill="#0969da"/>
+  </g>
+
+  <!-- Pane 3: Canvas -->
+  <g transform="translate(570, 30)">
+    <rect width="220" height="220" rx="8" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+    <text x="14" y="26" font-size="11" fill="#57606a" font-weight="700" letter-spacing="0.5">p5 CANVAS</text>
+    <!-- Three pink circles -->
+    <circle cx="60" cy="135" r="22" fill="#ff8fb1"/>
+    <circle cx="110" cy="135" r="22" fill="#ff8fb1"/>
+    <circle cx="160" cy="135" r="22" fill="#ff8fb1"/>
+    <text x="14" y="206" font-size="10" fill="#8c959f">rendered, ~1.5s end-to-end</text>
+  </g>
+</svg>

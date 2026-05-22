@@ -4,9 +4,11 @@
 
 > **Draft status (2026-05-22).** First-pass complete (§0–§9, ~2,680 words). Pre-publish editing pass still pending: tighten the hook, confirm citations, finalise lead image, decide author byline. Numbers track the frozen results under [`examples/creative-coding-p5js/bench/`](../../examples/creative-coding-p5js/bench/).
 
+![Task to validated DSL to p5.js canvas, all running on a local 1.5B LLM](./assets/lead-image.svg)
+
 ## §0 — Hook
 
-A 1.5-billion-parameter model running locally on a 4-year-old laptop GPU generates grammar-valid programs in a novel DSL on **17 out of 20 tasks** — no fine-tuning, no access to the model's logits. Swap the model for a 1.3-billion-parameter one from a different family, keep everything else identical, and the success rate drops to **zero**.
+**0% vs 85%.** Same twenty tasks. Same prompt pipeline. Same model size class. The only thing that changed between those two numbers is which 1-2 billion-parameter open-weights LLM is on the other end of the HTTP call.
 
 | Model | Size | baseline | +grammar | +few-shot | +retry | +rerank |
 |---|---:|---:|---:|---:|---:|---:|
