@@ -49,25 +49,44 @@ Expected wall time on a single 1.5B model on a CUDA RTX 2060 ≈ **5-15 minutes*
 
 ## Results
 
-Frozen run, 2026-05-22, model `qwen2.5:1.5b` via local Ollama on an RTX 2060 Mobile. Raw JSON: [`results-qwen2.5_1.5b.json`](./results-qwen2.5_1.5b.json).
+Frozen runs, 2026-05-22, via local Ollama on an RTX 2060 Mobile (6 GB).
 
-| Ablation | Valid | Success rate | Avg attempts | Avg latency |
-|---|---:|---:|---:|---:|
-| `baseline` | 0/20 | **0%** | 1.0 | 492 ms |
-| `grammar-only` | 1/20 | **5%** | 1.0 | 645 ms |
-| `+few-shot` | 11/20 | **55%** | 1.0 | 443 ms |
-| `+retry` | 15/20 | **75%** | 1.8 | 727 ms |
-| `+rerank` | 17/20 | **85%** | 4.7 | 1,539 ms |
+### Success rate × model × ablation
 
-### What each row buys
+| Model | Size | baseline | +grammar | +few-shot | +retry | **+rerank** |
+|---|---:|---:|---:|---:|---:|---:|
+| `qwen2.5:1.5b`  | 0.99 GB |  0% |  5% | **55%** | **75%** | **85%** |
+| `gemma2:2b`     | 1.6 GB  |  0% | 10% |  30% |  45% | **75%** |
+| `llama3.2:1b`   | 1.3 GB  |  0% |  0% |   0% |   0% |  **0%** |
 
-- **0 → 5%** with grammar alone: the 1.5B model can't even guess the surface from a plain task description; injecting the BNF nudges it slightly.
-- **5 → 55%** with few-shot examples: the biggest single jump — derivation-first examples teach the model the DSL shape in one prompt.
-- **55 → 75%** with retry-with-feedback (×3): the validator's error message, fed back into the next prompt, recovers 4 of the remaining 9 misses.
-- **75 → 85%** with best-of-3 + GrammarAwareRanker: when retry alone can't close the gap, sampling N=3 and picking the deepest-parse candidate (or any valid one) clears 2 more — the rerank is what survives when retry's fix doesn't generalise.
+Raw JSON: [`results-qwen2.5_1.5b.json`](./results-qwen2.5_1.5b.json), [`results-gemma2_2b.json`](./results-gemma2_2b.json), [`results-llama3.2_1b.json`](./results-llama3.2_1b.json).
+
+### Latency (avg ms / task)
+
+| Model | baseline | +grammar | +few-shot | +retry | +rerank |
+|---|---:|---:|---:|---:|---:|
+| `qwen2.5:1.5b`  |  492 |  645 |   443 |   727 |  1,539 |
+| `gemma2:2b`     | 2,193 | 1,646 |   947 | 3,175 |  7,244 |
+| `llama3.2:1b`   | 1,776 | 2,121 | 2,095 | 6,157 | 17,839 |
+
+### Per-row reading (qwen2.5:1.5b — best-performing model)
+
+- **0 → 5%** with grammar alone: a 1.5B model can't guess the DSL surface from the task description; the BNF nudges it slightly.
+- **5 → 55%** with few-shot examples: biggest single jump — derivation-first examples teach the DSL shape in one prompt.
+- **55 → 75%** with retry-with-feedback (×3): the validator's error, fed back into the next prompt, recovers 4 of the remaining 9 misses.
+- **75 → 85%** with best-of-3 + `GrammarAwareRanker`: when retry alone can't close the gap, sampling N=3 and picking the deepest-parse candidate clears 2 more.
+
+### What the multi-model row teaches us
+
+The two extra models split clean into "the pipeline amplifies what's there" vs "there's nothing to amplify":
+
+- **`gemma2:2b` (75% at +rerank)** rides the same ablation curve as `qwen2.5:1.5b`, just lower and slower — bigger model, more parameters spent on irrelevant capability, similar shape.
+- **`llama3.2:1b` (0% everywhere)** flatlines. Inspection shows it greedily echoes the leading rule of the grammar (`start: block+` → output starts with the literal token `start` → lex fails at offset 0). retry-with-feedback doesn't shake it loose; best-of-3 doesn't either, because all N samples make the same mistake. **noroshi can't amplify a model that doesn't have the DSL surface in its prior.**
+
+This is the headline finding of the multi-model run: the pipeline is roughly model-agnostic, but **model selection still dominates**. For a creative-coding application targeting an on-device 1-2B model, default to Qwen-2.5 family unless there's a hard reason not to.
 
 ### Caveats
 
-- Single model (`qwen2.5:1.5b`, ~1B effective). A separate run on `llama3.2:1b`, `gemma-2-2b-it`, etc. would let us factor model-vs-pipeline.
-- This is a **novel** DSL — the comparison that matters is column-vs-column (ablations on the same prompt), not against Wang et al.'s SMCalFlow / GeoQuery numbers.
-- `+rerank` more than triples latency (~440 → ~1540 ms) for +10 pt. That trade is right when wall time is below the human-noticing threshold (typing pause), wrong when you're rendering on every keystroke.
+- This is a **novel** DSL — the comparison that matters is column-vs-column (ablations on the same prompt) and row-vs-row (model-vs-model on the same prompt), not against Wang et al.'s SMCalFlow / GeoQuery / PDDL numbers (very different domain difficulty and model class).
+- `+rerank` triples to 10× latency for +10-30 pt on the models that respond at all. Right when wall time is below the human-noticing threshold (one-shot prompt), wrong for per-keystroke interactivity.
+- The `llama3.2:1b` 0% may be improvable — possibly with a different grammar header (no `start:` rule name), heavier few-shot derivation labelling, or just a bigger Llama-family model. Not worth optimising before validating with users which model they actually plan to ship.

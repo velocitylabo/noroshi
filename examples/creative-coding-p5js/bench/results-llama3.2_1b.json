@@ -1,0 +1,1002 @@
+{
+  "model": "llama3.2:1b",
+  "endpoint": "http://localhost:11434/v1",
+  "timestamp": "2026-05-22T08:38:12.737Z",
+  "taskCount": 20,
+  "ablations": [
+    {
+      "name": "baseline",
+      "description": "task only, no grammar, no few-shot, no validator",
+      "useGrammar": false,
+      "useFewShot": false,
+      "useValidator": false,
+      "retry": 0,
+      "selfConsistencyN": 1,
+      "useRanker": false
+    },
+    {
+      "name": "grammar-only",
+      "description": "BNF grammar injected, no few-shot",
+      "useGrammar": true,
+      "useFewShot": false,
+      "useValidator": false,
+      "retry": 0,
+      "selfConsistencyN": 1,
+      "useRanker": false
+    },
+    {
+      "name": "+few-shot",
+      "description": "grammar + few-shot examples (noroshi default, 1 attempt)",
+      "useGrammar": true,
+      "useFewShot": true,
+      "useValidator": true,
+      "retry": 0,
+      "selfConsistencyN": 1,
+      "useRanker": false
+    },
+    {
+      "name": "+retry",
+      "description": "grammar + few-shot + retry-with-feedback up to 3 attempts",
+      "useGrammar": true,
+      "useFewShot": true,
+      "useValidator": true,
+      "retry": 3,
+      "selfConsistencyN": 1,
+      "useRanker": false
+    },
+    {
+      "name": "+rerank",
+      "description": "grammar + few-shot + retry + best-of-3 with GrammarAwareRanker",
+      "useGrammar": true,
+      "useFewShot": true,
+      "useValidator": true,
+      "retry": 3,
+      "selfConsistencyN": 3,
+      "useRanker": true
+    }
+  ],
+  "summary": [
+    {
+      "name": "baseline",
+      "passed": 0,
+      "total": 20,
+      "successRate": 0,
+      "avgAttempts": 1,
+      "avgLatencyMs": 1775.95
+    },
+    {
+      "name": "grammar-only",
+      "passed": 0,
+      "total": 20,
+      "successRate": 0,
+      "avgAttempts": 1,
+      "avgLatencyMs": 2120.55
+    },
+    {
+      "name": "+few-shot",
+      "passed": 0,
+      "total": 20,
+      "successRate": 0,
+      "avgAttempts": 1,
+      "avgLatencyMs": 2094.55
+    },
+    {
+      "name": "+retry",
+      "passed": 0,
+      "total": 20,
+      "successRate": 0,
+      "avgAttempts": 3,
+      "avgLatencyMs": 6157.1
+    },
+    {
+      "name": "+rerank",
+      "passed": 0,
+      "total": 20,
+      "successRate": 0,
+      "avgAttempts": 9,
+      "avgLatencyMs": 17839.15
+    }
+  ],
+  "results": [
+    {
+      "task": "Draw a single white circle in the middle of a black canvas.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 28747,
+      "outputPreview": "draw_circle() -> canvas white circle\n  canvas = black\n  draw_circle(canvas, white, center)",
+      "error": "unknown identifier \"draw_circle\" at offset 0"
+    },
+    {
+      "task": "Draw a single white circle in the middle of a black canvas.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 1963,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a single white circle in the middle of a black canvas.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 1944,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a single white circle in the middle of a black canvas.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 5698,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a single white circle in the middle of a black canvas.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 16574,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Fill the canvas with green.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 221,
+      "outputPreview": "<canvas style=\"background-color: green;\"></canvas>",
+      "error": "unexpected character \"<\" at offset 0"
+    },
+    {
+      "task": "Fill the canvas with green.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2002,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Fill the canvas with green.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2037,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Fill the canvas with green.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 5884,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Fill the canvas with green.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 16788,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a red square at the top-left corner.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 162,
+      "outputPreview": "RED SQUARE\n```",
+      "error": "unknown identifier \"RED\" at offset 0"
+    },
+    {
+      "task": "Draw a red square at the top-left corner.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2012,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a red square at the top-left corner.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 1984,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a red square at the top-left corner.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 5912,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a red square at the top-left corner.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 17257,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a horizontal blue line across the middle of the canvas.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 240,
+      "outputPreview": "Line { type = Horizontal; color = Blue; }",
+      "error": "unknown identifier \"Line\" at offset 0"
+    },
+    {
+      "task": "Draw a horizontal blue line across the middle of the canvas.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2042,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a horizontal blue line across the middle of the canvas.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2009,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a horizontal blue line across the middle of the canvas.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 5943,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a horizontal blue line across the middle of the canvas.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 17445,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a small purple circle at the bottom-right.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 176,
+      "outputPreview": "draw_circle_bottom_right()",
+      "error": "unknown identifier \"draw_circle_bottom_right\" at offset 0"
+    },
+    {
+      "task": "Draw a small purple circle at the bottom-right.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2065,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a small purple circle at the bottom-right.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2050,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a small purple circle at the bottom-right.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 5978,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Draw a small purple circle at the bottom-right.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 17463,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Three pink circles in a horizontal row.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 600,
+      "outputPreview": "<circle> <pink> <x=0..5> <y=0..2> / <circle> <pink> <x=6..10> <y=0..2> / <circle> <pink> <x=11..15> <y=0..2>",
+      "error": "unexpected character \"<\" at offset 0"
+    },
+    {
+      "task": "Three pink circles in a horizontal row.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2094,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Three pink circles in a horizontal row.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2052,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Three pink circles in a horizontal row.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6089,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Three pink circles in a horizontal row.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 17712,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A white background with a green square in the center.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 280,
+      "outputPreview": "\\033[38;5;32m\\033[90m\\033[0m",
+      "error": "unexpected character \"\\\" at offset 0"
+    },
+    {
+      "task": "A white background with a green square in the center.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2095,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A white background with a green square in the center.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2071,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A white background with a green square in the center.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6116,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A white background with a green square in the center.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 17728,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Two purple squares side by side at the top.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 511,
+      "outputPreview": "<rect x=\"0\" y=\"0\" width=\"100%\" height=\"50%\" fill=\"#800080\" /> <rect x=\"10\" y=\"20\" width=\"80%\" height=\"30%\" fill=\"#800080",
+      "error": "unexpected character \"<\" at offset 0"
+    },
+    {
+      "task": "Two purple squares side by side at the top.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2140,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Two purple squares side by side at the top.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2069,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Two purple squares side by side at the top.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6127,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Two purple squares side by side at the top.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 17908,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A red circle inside a blue rectangle.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 306,
+      "outputPreview": "<rect><circle><color>red</color></circle><rect><color>blue</color></rect>",
+      "error": "unexpected character \"<\" at offset 0"
+    },
+    {
+      "task": "A red circle inside a blue rectangle.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2106,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A red circle inside a blue rectangle.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2082,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A red circle inside a blue rectangle.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6120,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A red circle inside a blue rectangle.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 17931,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Five orange circles spread out horizontally across the canvas.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 159,
+      "outputPreview": "Five orange circles",
+      "error": "unknown identifier \"Five\" at offset 0"
+    },
+    {
+      "task": "Five orange circles spread out horizontally across the canvas.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2137,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Five orange circles spread out horizontally across the canvas.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2097,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Five orange circles spread out horizontally across the canvas.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6231,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Five orange circles spread out horizontally across the canvas.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 18095,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Ten yellow dots arranged in a row.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 201,
+      "outputPreview": "Ten yellow dots arranged in a row.",
+      "error": "unknown identifier \"Ten\" at offset 0"
+    },
+    {
+      "task": "Ten yellow dots arranged in a row.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2118,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Ten yellow dots arranged in a row.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2137,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Ten yellow dots arranged in a row.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6243,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Ten yellow dots arranged in a row.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 18045,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Eight blue squares stacked vertically.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 193,
+      "outputPreview": "Eight blue squares stacked vertically.",
+      "error": "unknown identifier \"Eight\" at offset 0"
+    },
+    {
+      "task": "Eight blue squares stacked vertically.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2130,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Eight blue squares stacked vertically.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2121,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Eight blue squares stacked vertically.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6224,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Eight blue squares stacked vertically.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 18030,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Six small green circles in a row near the top.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 261,
+      "outputPreview": "{green|small} {circle|6} {near|top}",
+      "error": "unexpected character \"|\" at offset 6"
+    },
+    {
+      "task": "Six small green circles in a row near the top.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2137,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Six small green circles in a row near the top.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2183,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Six small green circles in a row near the top.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6188,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Six small green circles in a row near the top.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 18088,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A circle that moves left and right across the middle of the canvas.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 340,
+      "outputPreview": "circle { move { left { x = x - 10; } right { x = x + 10; } } }",
+      "error": "unknown identifier \"move\" at offset 9"
+    },
+    {
+      "task": "A circle that moves left and right across the middle of the canvas.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2179,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A circle that moves left and right across the middle of the canvas.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2168,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A circle that moves left and right across the middle of the canvas.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6349,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A circle that moves left and right across the middle of the canvas.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 17978,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A square that grows and shrinks at the center over time.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 851,
+      "outputPreview": "Square\n  | Square\n  |-- Grow\n  |    |-- Center\n  |    | Square\n  |    |   |-- Shrink\n  |    |   |-- Center\n  |    |\n  | ",
+      "error": "unknown identifier \"Square\" at offset 0"
+    },
+    {
+      "task": "A square that grows and shrinks at the center over time.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2188,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A square that grows and shrinks at the center over time.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2106,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A square that grows and shrinks at the center over time.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6387,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A square that grows and shrinks at the center over time.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 18237,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A pulsing pink circle in the middle.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 269,
+      "outputPreview": "PulsingPinkCircle: PulsingPinkCircle{ Pink Circle }*",
+      "error": "unknown identifier \"PulsingPinkCircle\" at offset 0"
+    },
+    {
+      "task": "A pulsing pink circle in the middle.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2155,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A pulsing pink circle in the middle.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2150,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A pulsing pink circle in the middle.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6249,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A pulsing pink circle in the middle.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 18265,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A green dot that follows the mouse.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 174,
+      "outputPreview": "Green Dot Follows Mouse",
+      "error": "unknown identifier \"Green\" at offset 0"
+    },
+    {
+      "task": "A green dot that follows the mouse.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2157,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A green dot that follows the mouse.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2152,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A green dot that follows the mouse.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6295,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A green dot that follows the mouse.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 18226,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A red circle that tracks the mouse position.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 210,
+      "outputPreview": "RED CIRCLE TRACKS MOUSE POSITION",
+      "error": "unknown identifier \"RED\" at offset 0"
+    },
+    {
+      "task": "A red circle that tracks the mouse position.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2178,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A red circle that tracks the mouse position.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2177,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A red circle that tracks the mouse position.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6393,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A red circle that tracks the mouse position.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 18271,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A circle that orbits around the center of the canvas over time.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 240,
+      "outputPreview": "Circle { orbiting around Canvas }",
+      "error": "unknown identifier \"Circle\" at offset 0"
+    },
+    {
+      "task": "A circle that orbits around the center of the canvas over time.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2199,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A circle that orbits around the center of the canvas over time.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2143,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A circle that orbits around the center of the canvas over time.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6439,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "A circle that orbits around the center of the canvas over time.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 18441,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Background that flashes between black and white over time.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 1378,
+      "outputPreview": "Background: \n  Flash: \n    Black: \n      Time: \n        Interval: \n          Milliseconds: \n            Number: \n       ",
+      "error": "unknown identifier \"Background\" at offset 0"
+    },
+    {
+      "task": "Background that flashes between black and white over time.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2314,
+      "outputPreview": "start: block+\n\nblock: setup_block\n     | tick_block\n     | stmt\n\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\" ",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Background that flashes between black and white over time.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2159,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Background that flashes between black and white over time.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 6277,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    },
+    {
+      "task": "Background that flashes between black and white over time.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 18301,
+      "outputPreview": "start: block+\nblock: setup_block | tick_block | stmt\nsetup_block: \"setup\" \"{\" stmt* \"}\"\ntick_block:  \"tick\"  \"{\" stmt* \"",
+      "error": "unknown identifier \"start\" at offset 0"
+    }
+  ]
+}
