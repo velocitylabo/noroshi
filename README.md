@@ -64,6 +64,20 @@ const llm = new FetchAdapter({
 
 A WebLLM-driven browser example (with grammar injection, retry-with-feedback, and a p5.js DSL transpiler) lives under `examples/creative-coding-p5js/` in the [source repo](https://github.com/velocitylabo/noroshi).
 
+## Benchmark — small LLM × novel DSL
+
+Headline result: a **1.5B-parameter on-device model** (Qwen2.5-1.5B-Instruct via local Ollama) drives noroshi from **0% to 85% valid output** on 20 novel creative-coding tasks without any fine-tuning.
+
+| Ablation | Valid | Success rate |
+|---|---:|---:|
+| baseline (task only) | 0/20 | **0%** |
+| + BNF grammar in prompt | 1/20 | **5%** |
+| + few-shot examples | 11/20 | **55%** |
+| + retry-with-feedback (×3) | 15/20 | **75%** |
+| + best-of-3 with `GrammarAwareRanker` | 17/20 | **85%** |
+
+Each row is the same noroshi pipeline with one additional component turned on, evaluated by the same post-hoc validator. Full methodology, per-row commentary, and the JSON output are under [`examples/creative-coding-p5js/bench/`](https://github.com/velocitylabo/noroshi/tree/main/examples/creative-coding-p5js/bench).
+
 ## Why
 
 Browser-side LLMs (LiteRT-LM web, `transformers.js` + WebGPU, WebLLM) currently lack constrained decoding APIs. The closest options each have hard limitations:

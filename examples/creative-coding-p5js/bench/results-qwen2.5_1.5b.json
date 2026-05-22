@@ -1,0 +1,958 @@
+{
+  "model": "qwen2.5:1.5b",
+  "endpoint": "http://localhost:11434/v1",
+  "timestamp": "2026-05-22T06:56:57.189Z",
+  "taskCount": 20,
+  "ablations": [
+    {
+      "name": "baseline",
+      "description": "task only, no grammar, no few-shot, no validator",
+      "useGrammar": false,
+      "useFewShot": false,
+      "useValidator": false,
+      "retry": 0,
+      "selfConsistencyN": 1,
+      "useRanker": false
+    },
+    {
+      "name": "grammar-only",
+      "description": "BNF grammar injected, no few-shot",
+      "useGrammar": true,
+      "useFewShot": false,
+      "useValidator": false,
+      "retry": 0,
+      "selfConsistencyN": 1,
+      "useRanker": false
+    },
+    {
+      "name": "+few-shot",
+      "description": "grammar + few-shot examples (noroshi default, 1 attempt)",
+      "useGrammar": true,
+      "useFewShot": true,
+      "useValidator": true,
+      "retry": 0,
+      "selfConsistencyN": 1,
+      "useRanker": false
+    },
+    {
+      "name": "+retry",
+      "description": "grammar + few-shot + retry-with-feedback up to 3 attempts",
+      "useGrammar": true,
+      "useFewShot": true,
+      "useValidator": true,
+      "retry": 3,
+      "selfConsistencyN": 1,
+      "useRanker": false
+    },
+    {
+      "name": "+rerank",
+      "description": "grammar + few-shot + retry + best-of-3 with GrammarAwareRanker",
+      "useGrammar": true,
+      "useFewShot": true,
+      "useValidator": true,
+      "retry": 3,
+      "selfConsistencyN": 3,
+      "useRanker": true
+    }
+  ],
+  "summary": [
+    {
+      "name": "baseline",
+      "passed": 0,
+      "total": 20,
+      "successRate": 0,
+      "avgAttempts": 1,
+      "avgLatencyMs": 491.9
+    },
+    {
+      "name": "grammar-only",
+      "passed": 1,
+      "total": 20,
+      "successRate": 0.05,
+      "avgAttempts": 1,
+      "avgLatencyMs": 645
+    },
+    {
+      "name": "+few-shot",
+      "passed": 11,
+      "total": 20,
+      "successRate": 0.55,
+      "avgAttempts": 1,
+      "avgLatencyMs": 443.35
+    },
+    {
+      "name": "+retry",
+      "passed": 15,
+      "total": 20,
+      "successRate": 0.75,
+      "avgAttempts": 1.75,
+      "avgLatencyMs": 726.85
+    },
+    {
+      "name": "+rerank",
+      "passed": 17,
+      "total": 20,
+      "successRate": 0.85,
+      "avgAttempts": 4.65,
+      "avgLatencyMs": 1538.65
+    }
+  ],
+  "results": [
+    {
+      "task": "Draw a single white circle in the middle of a black canvas.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 2578,
+      "outputPreview": "<circle cx=\"50\" cy=\"50\" r=\"20\" fill=\"white\"/>",
+      "error": "unexpected character \"<\" at offset 0"
+    },
+    {
+      "task": "Draw a single white circle in the middle of a black canvas.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 702,
+      "outputPreview": "setup:\n   \"background\" \"black\"\n\ntick:\n\n   \"circle\" 0 0 100\n\nrepeat 1:\n   \"fill\" \"white\"\n   \"stroke\" \"black\"\n   \"no_fill\"",
+      "error": "unexpected character \":\" at offset 5"
+    },
+    {
+      "task": "Draw a single white circle in the middle of a black canvas.",
+      "ablation": "+few-shot",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 334,
+      "outputPreview": "background black\nfill white\ncircle w / 2 h / 2 50"
+    },
+    {
+      "task": "Draw a single white circle in the middle of a black canvas.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 256,
+      "outputPreview": "background black\nfill white\ncircle w / 2 h / 2 50"
+    },
+    {
+      "task": "Draw a single white circle in the middle of a black canvas.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 584,
+      "outputPreview": "background black\nfill white\ncircle w / 2 h / 2 50"
+    },
+    {
+      "task": "Fill the canvas with green.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 157,
+      "outputPreview": "green",
+      "error": "expected a statement keyword at offset 0, got \"green\""
+    },
+    {
+      "task": "Fill the canvas with green.",
+      "ablation": "grammar-only",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 290,
+      "outputPreview": "setup {\n}"
+    },
+    {
+      "task": "Fill the canvas with green.",
+      "ablation": "+few-shot",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 195,
+      "outputPreview": "background green"
+    },
+    {
+      "task": "Fill the canvas with green.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 124,
+      "outputPreview": "background green"
+    },
+    {
+      "task": "Fill the canvas with green.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 227,
+      "outputPreview": "background green"
+    },
+    {
+      "task": "Draw a red square at the top-left corner.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 250,
+      "outputPreview": ".square {\n    fill: #ff0000;\n}",
+      "error": "unexpected character \".\" at offset 0"
+    },
+    {
+      "task": "Draw a red square at the top-left corner.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 744,
+      "outputPreview": "setup:\n  |\n  |   background: \"red\"\n  |   rect: [0, 0, 50, 50]\n  |\ntick:\n  fill: \"red\"\n  rect: [0, 0, 50, 50]",
+      "error": "unexpected character \":\" at offset 5"
+    },
+    {
+      "task": "Draw a red square at the top-left corner.",
+      "ablation": "+few-shot",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 356,
+      "outputPreview": "setup {\n  background white\n}\nfill red\nsquare w / 2 h / 2 10"
+    },
+    {
+      "task": "Draw a red square at the top-left corner.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 293,
+      "outputPreview": "setup {\n  background white\n}\nfill red\nsquare w / 2 h / 2 10"
+    },
+    {
+      "task": "Draw a red square at the top-left corner.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 695,
+      "outputPreview": "setup {\n  background white\n}\nfill red\nsquare w / 2 h / 2 10"
+    },
+    {
+      "task": "Draw a horizontal blue line across the middle of the canvas.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 338,
+      "outputPreview": "line 100 50 200 50 fill #0000ff stroke",
+      "error": "unexpected character \"#\" at offset 24"
+    },
+    {
+      "task": "Draw a horizontal blue line across the middle of the canvas.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 565,
+      "outputPreview": "setup\n{\n    bg background \"blue\"\n}\ntick\n{\n    repeat 100 {\n        fill \"blue\"\n        rect w h 0 0\n    }\n}",
+      "error": "unknown identifier \"bg\" at offset 12"
+    },
+    {
+      "task": "Draw a horizontal blue line across the middle of the canvas.",
+      "ablation": "+few-shot",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 349,
+      "outputPreview": "background white\nfill blue\nrect w / 2 h / 2 0 100"
+    },
+    {
+      "task": "Draw a horizontal blue line across the middle of the canvas.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 277,
+      "outputPreview": "background white\nfill blue\nrect w / 2 h / 2 0 100"
+    },
+    {
+      "task": "Draw a horizontal blue line across the middle of the canvas.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 681,
+      "outputPreview": "background white\nfill blue\nrect w / 2 h / 2 0 1000"
+    },
+    {
+      "task": "Draw a small purple circle at the bottom-right.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 351,
+      "outputPreview": ".circle {\n  fill: purple;\n  position: absolute;\n  top: 0;\n  right: 0;\n}",
+      "error": "unexpected character \".\" at offset 0"
+    },
+    {
+      "task": "Draw a small purple circle at the bottom-right.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 580,
+      "outputPreview": "setup:\n  background: \"purple\"\n\ntick:\n  fill: \"purple\"\n  rect: [w-10, h-10, 20, 20]",
+      "error": "unexpected character \":\" at offset 5"
+    },
+    {
+      "task": "Draw a small purple circle at the bottom-right.",
+      "ablation": "+few-shot",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 332,
+      "outputPreview": "background white\nfill purple\ncircle w / 2 h / 2 150"
+    },
+    {
+      "task": "Draw a small purple circle at the bottom-right.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 261,
+      "outputPreview": "background white\nfill purple\ncircle w / 2 h / 2 100"
+    },
+    {
+      "task": "Draw a small purple circle at the bottom-right.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 503,
+      "outputPreview": "background white\nfill purple\ncircle w / 2 h / 2 150"
+    },
+    {
+      "task": "Three pink circles in a horizontal row.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 505,
+      "outputPreview": ".circle-container {\n  display: flex;\n  justify-content: space-between;\n}\n\n.circle-container .circle {\n  width: 50px;\n  h",
+      "error": "unexpected character \".\" at offset 0"
+    },
+    {
+      "task": "Three pink circles in a horizontal row.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 900,
+      "outputPreview": "setup:\n  | \"circle\" 0 0 100\n  | \"circle\" 50 0 100\n  | \"circle\" 100 0 100\n\ntick:\n  | \"fill\" \"pink\"\n  | \"stroke\" \"pink\"\n\nr",
+      "error": "unexpected character \":\" at offset 5"
+    },
+    {
+      "task": "Three pink circles in a horizontal row.",
+      "ablation": "+few-shot",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 430,
+      "outputPreview": "background white\nfill pink\nrepeat 3 { \n  circle i * 40 + 20 h / 2 15\n}"
+    },
+    {
+      "task": "Three pink circles in a horizontal row.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 357,
+      "outputPreview": "background white\nfill pink\nrepeat 3 {  \n  circle i * 40 + 20 h / 2 15\n}"
+    },
+    {
+      "task": "Three pink circles in a horizontal row.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 903,
+      "outputPreview": "background white\nfill pink\nrepeat 3 { \n  circle i * 40 + 20 h / 2 15\n}"
+    },
+    {
+      "task": "A white background with a green square in the center.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 631,
+      "outputPreview": ".square {\n  background-color: #008000;\n}\nbody {\n  background-color: #FFFFFF;\n}\n\n.square {\n  position: absolute;\n  top: 5",
+      "error": "unexpected character \".\" at offset 0"
+    },
+    {
+      "task": "A white background with a green square in the center.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 519,
+      "outputPreview": "setup\n{\n  bg_background \"white\"\n}\ntick\n{\n  rect 0 0 50 50 20\n}",
+      "error": "unknown identifier \"bg_background\" at offset 10"
+    },
+    {
+      "task": "A white background with a green square in the center.",
+      "ablation": "+few-shot",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 335,
+      "outputPreview": "background white\nfill green\nsquare w / 2 h / 2 50"
+    },
+    {
+      "task": "A white background with a green square in the center.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 251,
+      "outputPreview": "background white\nfill green\nsquare w / 2 h / 2 50"
+    },
+    {
+      "task": "A white background with a green square in the center.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 606,
+      "outputPreview": "background white\nfill green\nsquare w / 2 h / 2 50"
+    },
+    {
+      "task": "Two purple squares side by side at the top.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 216,
+      "outputPreview": "\\square\\square\\square\\square",
+      "error": "unexpected character \"\\\" at offset 0"
+    },
+    {
+      "task": "Two purple squares side by side at the top.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 797,
+      "outputPreview": "setup {\n  bg background rgb 255,0,165;\n}\n\nrepeat i < 2 {\n  tick {\n    fill red;\n    rect 0 0 40 80;\n    fill purple;\n   ",
+      "error": "unknown identifier \"bg\" at offset 10"
+    },
+    {
+      "task": "Two purple squares side by side at the top.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 471,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 2 {  \n  bg_stmt,\n  fill purple,\n  square w / 2 h / 2 50\n}",
+      "error": "unknown identifier \"bg_stmt\" at offset 44"
+    },
+    {
+      "task": "Two purple squares side by side at the top.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 2,
+      "latencyMs": 857,
+      "outputPreview": "setup {\n  background black\n}\ntick {\n  fill purple\n  square w / 2 h / 2 100\n  fill purple\n  square w / 2 h / 2 300\n}"
+    },
+    {
+      "task": "Two purple squares side by side at the top.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 6,
+      "latencyMs": 2261,
+      "outputPreview": "setup {\n  background black\n}\ntick {\n  fill purple\n  square w / 2 h / 2 100\n  fill purple\n  square w / 2 h / 2 150\n}"
+    },
+    {
+      "task": "A red circle inside a blue rectangle.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 194,
+      "outputPreview": ".red-circle-in-blue-rectangle",
+      "error": "unexpected character \".\" at offset 0"
+    },
+    {
+      "task": "A red circle inside a blue rectangle.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 470,
+      "outputPreview": "setup {\n  fill \"red\";\n  rect 50 50 100 200;\n}",
+      "error": "unexpected character \"\"\" at offset 15"
+    },
+    {
+      "task": "A red circle inside a blue rectangle.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 467,
+      "outputPreview": "setup {\n  background white\n}\nfill red\nrect w / 2 h / 2 50\ncircle w / 4 h / 4 10",
+      "error": "expected number, variable, function call, or \"(...)\" at offset 58, got \"circle\""
+    },
+    {
+      "task": "A red circle inside a blue rectangle.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 1122,
+      "outputPreview": "setup {\n  background black\n}\nfill red\nrect w / 2 h / 2 50\ncircle mx my 30",
+      "error": "expected number, variable, function call, or \"(...)\" at offset 58, got \"circle\""
+    },
+    {
+      "task": "A red circle inside a blue rectangle.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 2788,
+      "outputPreview": "setup {\n  background black\n}\ntick {\n  fill red\n  rect w / 2 h / 2 50\n}",
+      "error": "expected number, variable, function call, or \"(...)\" at offset 69, got \"}\""
+    },
+    {
+      "task": "Five orange circles spread out horizontally across the canvas.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 419,
+      "outputPreview": "five_orange_circles_spread_out_horizontally_across_the_canvas {\n    five { circle { color = \"orange\"; shape = \"circle\" }",
+      "error": "unknown identifier \"five_orange_circles_spread_out_horizontally_across_the_canvas\" at offset 0"
+    },
+    {
+      "task": "Five orange circles spread out horizontally across the canvas.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 479,
+      "outputPreview": "setup {\n}\nrepeat 5 {\"circle\" \"0\" \"w/2\" \"h/2\" \"10\"}",
+      "error": "unexpected character \"\"\" at offset 20"
+    },
+    {
+      "task": "Five orange circles spread out horizontally across the canvas.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 520,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 5 {  \n  shape_stmt → fill orange, square (i * w / 2 + 10) h/2 40\n}",
+      "error": "unknown identifier \"shape_stmt\" at offset 44"
+    },
+    {
+      "task": "Five orange circles spread out horizontally across the canvas.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 1410,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 5 {  \n  fill orange\n  circle mx / 2 + i * 100 w / 2 h / 2 30\n}",
+      "error": "expected a statement keyword at offset 94, got \"30\""
+    },
+    {
+      "task": "Five orange circles spread out horizontally across the canvas.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 1130,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 5 {  \n  fill orange\n  circle w / 2 h / 2 100 + i * 40\n}"
+    },
+    {
+      "task": "Ten yellow dots arranged in a row.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 163,
+      "outputPreview": "• .",
+      "error": "unexpected character \"•\" at offset 0"
+    },
+    {
+      "task": "Ten yellow dots arranged in a row.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 420,
+      "outputPreview": "setup {\n}\nrepeat 10 {\"circle 0 0 5\"} tick",
+      "error": "unexpected character \"\"\" at offset 21"
+    },
+    {
+      "task": "Ten yellow dots arranged in a row.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 287,
+      "outputPreview": "shape_stmt → dot expr expr expr (×10)",
+      "error": "unknown identifier \"shape_stmt\" at offset 0"
+    },
+    {
+      "task": "Ten yellow dots arranged in a row.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 1382,
+      "outputPreview": "setup {\n  background white\n}\ntick {\n  fill yellow\n  dot x / 10 + i * 40 y / 2 w / 2\n}",
+      "error": "unknown identifier \"dot\" at offset 52"
+    },
+    {
+      "task": "Ten yellow dots arranged in a row.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 3472,
+      "outputPreview": "setup {\n  background white\n}\ntick {\n  fill yellow\n  dot x / 10 + i * 40 y / 2 r / 2\n}",
+      "error": "unknown identifier \"dot\" at offset 52"
+    },
+    {
+      "task": "Eight blue squares stacked vertically.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 286,
+      "outputPreview": "\\squares\\square\\square\\square\\square\\square\\square\\square",
+      "error": "unexpected character \"\\\" at offset 0"
+    },
+    {
+      "task": "Eight blue squares stacked vertically.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 455,
+      "outputPreview": "setup\n{\n    repeat 8 {\n        \"square\" -1 0 2\n    }\n}",
+      "error": "unexpected character \"\"\" at offset 31"
+    },
+    {
+      "task": "Eight blue squares stacked vertically.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 1074,
+      "outputPreview": "setup {\n}\nblock → stmt (×8)\nstmt → bg_stmt | shape_stmt (×2)\nshape_stmt → square 100 40 50\nOutput:\nsetup {\n}",
+      "error": "unknown identifier \"block\" at offset 10"
+    },
+    {
+      "task": "Eight blue squares stacked vertically.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 2122,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 8 { \n  fill blue, square w / 2 h / 2 15\n}",
+      "error": "expected a statement keyword at offset 52, got \",\""
+    },
+    {
+      "task": "Eight blue squares stacked vertically.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 6,
+      "latencyMs": 2554,
+      "outputPreview": "setup {\n  background white\n}\ntick {\n  background white\n  fill blue\n  rect 0 w / 2 h / 2 40\n}"
+    },
+    {
+      "task": "Six small green circles in a row near the top.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 507,
+      "outputPreview": ".circle-container {\n  display: flex;\n  justify-content: center;\n}\n\n.circle-container .circle {\n  width: 10px;\n  height: ",
+      "error": "unexpected character \".\" at offset 0"
+    },
+    {
+      "task": "Six small green circles in a row near the top.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 618,
+      "outputPreview": "setup {\n  circle 100 50 20;\n  circle 120 50 20;\n  circle 140 50 20;\n}",
+      "error": "unexpected character \";\" at offset 26"
+    },
+    {
+      "task": "Six small green circles in a row near the top.",
+      "ablation": "+few-shot",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 441,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 6 {  \n  fill green\n  circle w / 2 h / 4 15\n}"
+    },
+    {
+      "task": "Six small green circles in a row near the top.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 370,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 6 {  \n  fill green\n  circle w / 4 h / 2 15\n}"
+    },
+    {
+      "task": "Six small green circles in a row near the top.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 988,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 6 {  \n  fill green\n  rect 10 t / 2 w / 4 h / 2\n}"
+    },
+    {
+      "task": "A circle that moves left and right across the middle of the canvas.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 488,
+      "outputPreview": "<circle cx=\"50\" cy=\"50\" r=\"30\" transform=\"translate(-10, -10) rotate(45)\" fill=\"#ff69b4\"/>",
+      "error": "unexpected character \"<\" at offset 0"
+    },
+    {
+      "task": "A circle that moves left and right across the middle of the canvas.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 925,
+      "outputPreview": "setup {\n  var mx, my;\n}\n\ntick {\n  mx = mouseX;\n  my = mouseY;\n\n  fill(0);\n  rect(mx - w/2, h/2, w/4, h/2);\n\n  translate(",
+      "error": "unknown identifier \"var\" at offset 10"
+    },
+    {
+      "task": "A circle that moves left and right across the middle of the canvas.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 522,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 10 {\n  tick {\n    background white\n    fill red\n    translate w / 2 h / 2 50\n  }\n}",
+      "error": "\"tick\" block is only valid at the top level"
+    },
+    {
+      "task": "A circle that moves left and right across the middle of the canvas.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 2,
+      "latencyMs": 844,
+      "outputPreview": "setup {\n  background white\n}\ntick {\n  background white\n  fill red\n  circle w / 2 h / 2 50\n}"
+    },
+    {
+      "task": "A circle that moves left and right across the middle of the canvas.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 9,
+      "latencyMs": 3726,
+      "outputPreview": "setup {\n  background white\n}\ntick {\n  background white\n  fill red\n  circle w / 2 h / 2 50\n}"
+    },
+    {
+      "task": "A square that grows and shrinks at the center over time.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 296,
+      "outputPreview": "s = \"square\" + \"grow\" + \"center\" + \"shrink\"",
+      "error": "unknown identifier \"s\" at offset 0"
+    },
+    {
+      "task": "A square that grows and shrinks at the center over time.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 669,
+      "outputPreview": "setup:\n  | \"background\" color\n\ntick:\n  \"repeat\" INT \"{\" \"square\" expr expr expr expr \"{\" \"fill\" color \"stroke\" color \"tr",
+      "error": "unexpected character \":\" at offset 5"
+    },
+    {
+      "task": "A square that grows and shrinks at the center over time.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 444,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 10 {\n  fill red\n  rect w / 2 h / 2 50\n}",
+      "error": "expected number, variable, function call, or \"(...)\" at offset 74, got \"}\""
+    },
+    {
+      "task": "A square that grows and shrinks at the center over time.",
+      "ablation": "+retry",
+      "ok": false,
+      "attempts": 3,
+      "latencyMs": 1366,
+      "outputPreview": "setup {\n  background white\n}\ntick {\n  fill red\n  rect w / 2 h / 2 40\n}",
+      "error": "expected number, variable, function call, or \"(...)\" at offset 69, got \"}\""
+    },
+    {
+      "task": "A square that grows and shrinks at the center over time.",
+      "ablation": "+rerank",
+      "ok": false,
+      "attempts": 9,
+      "latencyMs": 3741,
+      "outputPreview": "setup {\n  background white\n}\ntick {\n  fill red\n  rect w / 2 h / 2 100\n}",
+      "error": "expected number, variable, function call, or \"(...)\" at offset 70, got \"}\""
+    },
+    {
+      "task": "A pulsing pink circle in the middle.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 464,
+      "outputPreview": "```\n<p><div style=\"width: 100px; height: 100px; background-color: pink; animation: pulse 2s infinite linear;\"></div></p>",
+      "error": "unexpected character \"`\" at offset 0"
+    },
+    {
+      "task": "A pulsing pink circle in the middle.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 689,
+      "outputPreview": "setup {\n  fill \"pink\";\n}\n\nrepeat i < 100 {\n  tick;\n  translate w/2, h/2;\n  rotate t * 3.6;\n  circle mx, my, 50;\n}",
+      "error": "unexpected character \"\"\" at offset 15"
+    },
+    {
+      "task": "A pulsing pink circle in the middle.",
+      "ablation": "+few-shot",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 522,
+      "outputPreview": "setup {\n  background white\n}\nfill pink\nrepeat 100 {  \n  translate w / 2 h / 2\n  rotate t * 5\n  fill pink\n}"
+    },
+    {
+      "task": "A pulsing pink circle in the middle.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 2,
+      "latencyMs": 879,
+      "outputPreview": "tick {\n  background black\n  fill pink\n  rotate sin(t) * 360 + 90\n}"
+    },
+    {
+      "task": "A pulsing pink circle in the middle.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 1173,
+      "outputPreview": "setup {\n  background white\n}\nfill pink\ncircle w / 2 h / 2 50\nrepeat 10 {  \n  rotate sin(t) * 90 + 45\n}"
+    },
+    {
+      "task": "A green dot that follows the mouse.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 540,
+      "outputPreview": ".green-dot:hover::after {\n  content: \"\\26AB\";\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  transform: translate(-50%",
+      "error": "unexpected character \".\" at offset 0"
+    },
+    {
+      "task": "A green dot that follows the mouse.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 519,
+      "outputPreview": "setup:\n  \"circle\" 0 0 10\n\nrepeat i {\n  tick\n  translate mx my 5\n}",
+      "error": "unexpected character \":\" at offset 5"
+    },
+    {
+      "task": "A green dot that follows the mouse.",
+      "ablation": "+few-shot",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 471,
+      "outputPreview": "setup {\n  background white\n}\ntick {\n  background white\n  no_fill\n  no_stroke\n  fill green\n  circle mx my 15\n}"
+    },
+    {
+      "task": "A green dot that follows the mouse.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 408,
+      "outputPreview": "setup {\n  background white\n}\ntick {\n  background white\n  no_fill\n  no_stroke\n  fill green\n  circle mx my 15\n}"
+    },
+    {
+      "task": "A green dot that follows the mouse.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 927,
+      "outputPreview": "setup {\n  background white\n}\ntick {\n  background white\n  fill green\n  no_fill\n  no_stroke\n  circle mx my 10\n}"
+    },
+    {
+      "task": "A red circle that tracks the mouse position.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 479,
+      "outputPreview": "<svg width=\"100\" height=\"100\">\n  <circle cx=\"50\" cy=\"50\" r=\"40\" fill=\"red\"/>\n</svg>",
+      "error": "unexpected character \"<\" at offset 0"
+    },
+    {
+      "task": "A red circle that tracks the mouse position.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 1177,
+      "outputPreview": "setup:\n  \"circle\" 0 0 10\n\ntick:\n  \"fill\"   \"red\"\n  \"repeat\" f\n    \"translate\" mx my\n    \"circle\" 0 0 10",
+      "error": "unexpected character \":\" at offset 5"
+    },
+    {
+      "task": "A red circle that tracks the mouse position.",
+      "ablation": "+few-shot",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 318,
+      "outputPreview": "setup {\n  background white\n}\nfill red\ncircle mx my 50"
+    },
+    {
+      "task": "A red circle that tracks the mouse position.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 1,
+      "latencyMs": 248,
+      "outputPreview": "setup {\n  background white\n}\nfill red\ncircle mx my 50"
+    },
+    {
+      "task": "A red circle that tracks the mouse position.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 567,
+      "outputPreview": "setup {\n  background white\n}\nfill red\ncircle mx my 50"
+    },
+    {
+      "task": "A circle that orbits around the center of the canvas over time.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 437,
+      "outputPreview": "<circle cx=\"50\" cy=\"50\" r=\"30\" fill=\"blue\" transform=\"rotate(0 50 50)\" />",
+      "error": "unexpected character \"<\" at offset 0"
+    },
+    {
+      "task": "A circle that orbits around the center of the canvas over time.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 687,
+      "outputPreview": "setup {\n  repeat 1000 {\n    fill random(255, 255, 255);\n    translate w/ h;\n    rotate t;\n    circle mx my 50;\n  }\n}",
+      "error": "unexpected character \";\" at offset 54"
+    },
+    {
+      "task": "A circle that orbits around the center of the canvas over time.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 587,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 100 { tick {\n    background white\n    translate w / 2 h / 2\n    rotate sin(t)\n    fi",
+      "error": "\"tick\" block is only valid at the top level"
+    },
+    {
+      "task": "A circle that orbits around the center of the canvas over time.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 2,
+      "latencyMs": 1179,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 100 { // orbiting circle\n  fill red\n  translate w / 2 h / 2\n  rotate t * 360 / 100\n}"
+    },
+    {
+      "task": "A circle that orbits around the center of the canvas over time.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 6,
+      "latencyMs": 2652,
+      "outputPreview": "setup {\n  background white\n}\nrepeat 100 { // repeat loop counter (only valid inside `repeat`)\n  fill red\n  circle w / 2 "
+    },
+    {
+      "task": "Background that flashes between black and white over time.",
+      "ablation": "baseline",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 539,
+      "outputPreview": "<transition>\n  <effect type=\"background\" mode=\"flash\">\n    <color>black</color>\n    <color>white</color>\n    <duration>t",
+      "error": "unexpected character \"<\" at offset 0"
+    },
+    {
+      "task": "Background that flashes between black and white over time.",
+      "ablation": "grammar-only",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 695,
+      "outputPreview": "setup\n{\n  bg_stmt \"background\" \"rgb(0,0,0)\"\n}\nrepeat 10 {\n  tick\n  bg_stmt \"background\" \"rgb(255,255,255)\"\n}",
+      "error": "unknown identifier \"bg_stmt\" at offset 10"
+    },
+    {
+      "task": "Background that flashes between black and white over time.",
+      "ablation": "+few-shot",
+      "ok": false,
+      "attempts": 1,
+      "latencyMs": 412,
+      "outputPreview": "background white\nrepeat 100 {  \n  background black\n  delay t / 25\n  background white\n}",
+      "error": "unknown identifier \"delay\" at offset 53"
+    },
+    {
+      "task": "Background that flashes between black and white over time.",
+      "ablation": "+retry",
+      "ok": true,
+      "attempts": 2,
+      "latencyMs": 531,
+      "outputPreview": "background white\nrepeat 10 {\n  background black\n}"
+    },
+    {
+      "task": "Background that flashes between black and white over time.",
+      "ablation": "+rerank",
+      "ok": true,
+      "attempts": 3,
+      "latencyMs": 595,
+      "outputPreview": "background black\nrepeat 100 {  \n  background white\n}"
+    }
+  ]
+}
