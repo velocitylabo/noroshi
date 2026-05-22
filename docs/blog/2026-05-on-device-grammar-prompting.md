@@ -147,7 +147,26 @@ npx tsx examples/creative-coding-p5js/bench/run.ts
 
 Now we can read the table row by row.
 
-<!-- TODO §5 — Per-row commentary (centerpiece, ~400 words) -->
+## §5 — Reading the table row by row
+
+| Model | baseline | +grammar | +few-shot | +retry | +rerank |
+|---|---:|---:|---:|---:|---:|
+| Qwen2.5-1.5B | 0% | 5% | **55%** | **75%** | **85%** |
+| Gemma-2-2B | 0% | 10% | 30% | 45% | **75%** |
+| Llama-3.2-1B | 0% | 0% | 0% | 0% | **0%** |
+
+**`baseline`: 0% everywhere.** Given only the natural-language task, a 1-2B instruct model has no prior for the noroshi-creative DSL. The outputs are mostly English prose ("Sure! To draw three pink circles, you would…"), CSS/HTML snippets, or Python fragments. The grammar exists nowhere in the model's training distribution, so without an explicit signal of what shape the answer should take, there is no signal at all. This is the reference floor — every gain above it is the pipeline doing work, not the model.
+
+**`+grammar`: 5–10%, with one model still at zero.** Pasting the twenty-line BNF into the system prompt nudges Qwen from 0 → 5% and Gemma from 0 → 10%. The model now knows there *is* a grammar, but without examples it lacks the bridge from "here is a CFG" to "produce a sentence accepted by it." A handful of trivially short programs happen to land on valid output. Llama stays at zero — the grammar by itself isn't enough of a signal to override its priors about what a code completion should look like.
+
+**`+few-shot`: 55%, 30%, 0% — the biggest single jump on every model that responds.** Adding four derivation-first examples (`start → block, block → bg_stmt, bg_stmt → "background" color → background white`) is what teaches the model the DSL's surface. Qwen jumps +50pt, Gemma +20pt. This is Wang et al.'s headline finding reproduced at 100× smaller model size: the *derivation* line in the few-shot examples does more work than the grammar itself. Llama still at zero — more on that in a moment.
+
+**`+retry`: 75%, 45%. Error feedback is dense signal for small models.** When validation fails, we append the validator's specific error (`rgb expects "," at offset 30, got ")"`) to the next prompt and ask again. On Qwen, this recovers 4 of the 9 remaining misses; on Gemma, 3 of 14. The error message functions as a *targeted* in-context update — it tells the model not just "you were wrong" but "you were wrong at exactly this token, expecting exactly this thing." Models this size respond to that pointer surprisingly well.
+
+**`+rerank`: 85%, 75%. Best-of-3 with a grammar-aware ranker is what catches what retry can't.** Some misses are stubborn — the model gives the same wrong answer three retries in a row, and the validator's error doesn't dislodge it. Sampling N=3 in parallel and picking either (a) any valid candidate, or (b) the deepest-parse failure breaks that loop. The ranker's score is `max(1, len - errorOffset)`, so a candidate that parsed 40 characters before failing beats one that died at character 3. Qwen gains +10pt, Gemma +30pt — Gemma benefits more, suggesting its sampling variance is higher and parallelism buys it more diversity than Qwen, which is already pretty consistent.
+
+**Llama, all five columns, exactly zero.** The Llama row is the most interesting cell of the table because the failure mode is so specific. Inspect [`results-llama3.2_1b.json`](https://github.com/velocitylabo/noroshi/blob/main/examples/creative-coding-p5js/bench/results-llama3.2_1b.json) and every output across every ablation starts with the literal token **`start`** — followed by the lex error `unknown identifier "start" at offset 0`. The model has memorised the grammar's leading rule name (`start: block+`) and emits `start` as its first token. Retry doesn't fix it: the next two attempts also begin with `start`. Best-of-3 doesn't fix it either: all three parallel samples begin with `start`. The pipeline depends on having any non-zero probability mass on grammar-valid continuations to amplify — when the model is anchored on a single wrong token with overwhelming confidence, there is nothing for retry or rerank to grip. **noroshi can amplify a model's grammar prior, but it cannot create one.**
+
 <!-- TODO §6 — The code that does it (~400 words) -->
 <!-- TODO §7 — What this doesn't fix (~200 words) -->
 <!-- TODO §8 — Try it (~100 words) -->
