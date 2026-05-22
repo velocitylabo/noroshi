@@ -66,17 +66,20 @@ A WebLLM-driven browser example (with grammar injection, retry-with-feedback, an
 
 ## Benchmark — small LLM × novel DSL
 
-Headline result: a **1.5B-parameter on-device model** (Qwen2.5-1.5B-Instruct via local Ollama) drives noroshi from **0% to 85% valid output** on 20 novel creative-coding tasks without any fine-tuning.
+Headline result: a **1.5B-parameter on-device model** (Qwen2.5-1.5B-Instruct via local Ollama) drives noroshi from **0% to 85% valid output** on 20 novel creative-coding tasks — no fine-tuning, no logit-level constrained decoding.
 
-| Ablation | Valid | Success rate |
-|---|---:|---:|
-| baseline (task only) | 0/20 | **0%** |
-| + BNF grammar in prompt | 1/20 | **5%** |
-| + few-shot examples | 11/20 | **55%** |
-| + retry-with-feedback (×3) | 15/20 | **75%** |
-| + best-of-3 with `GrammarAwareRanker` | 17/20 | **85%** |
+| Model | Size | baseline | +grammar | +few-shot | +retry | **+rerank** |
+|---|---:|---:|---:|---:|---:|---:|
+| `qwen2.5:1.5b` | 0.99 GB | 0% | 5% | 55% | 75% | **85%** |
+| `gemma2:2b`    | 1.6 GB  | 0% | 10% | 30% | 45% | **75%** |
+| `llama3.2:1b`  | 1.3 GB  | 0% | 0% | 0% | 0% | **0%** |
 
-Each row is the same noroshi pipeline with one additional component turned on, evaluated by the same post-hoc validator. Full methodology, per-row commentary, and the JSON output are under [`examples/creative-coding-p5js/bench/`](https://github.com/velocitylabo/noroshi/tree/main/examples/creative-coding-p5js/bench).
+Two takeaways:
+
+1. **The pipeline is roughly model-agnostic** — `qwen` and `gemma` ride the same ablation curve, the latter at lower magnitudes.
+2. **Model selection still dominates** — `llama3.2:1b` flatlines because it consistently echoes the grammar's leading rule (`start: block+` → literal token `start` at offset 0), and retry/rerank can't shake it loose.
+
+Full methodology, per-row commentary, latency tables, and raw JSON: [`examples/creative-coding-p5js/bench/`](https://github.com/velocitylabo/noroshi/tree/main/examples/creative-coding-p5js/bench).
 
 ## Why
 
