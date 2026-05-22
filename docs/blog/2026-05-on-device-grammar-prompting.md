@@ -2,7 +2,7 @@
 
 *What Wang et al.'s Grammar Prompting actually buys when you can't reach the logits, and how each component pulls its weight.*
 
-> **Draft status (2026-05-22).** Sections §0–§4 are first-pass. §5 (per-row commentary) onward is in progress. Numbers in this draft track the frozen results under [`examples/creative-coding-p5js/bench/`](../../examples/creative-coding-p5js/bench/).
+> **Draft status (2026-05-22).** First-pass complete (§0–§9, ~2,680 words). Pre-publish editing pass still pending: tighten the hook, confirm citations, finalise lead image, decide author byline. Numbers track the frozen results under [`examples/creative-coding-p5js/bench/`](../../examples/creative-coding-p5js/bench/).
 
 ## §0 — Hook
 
@@ -253,6 +253,58 @@ Three rules. Validation succeeds → score 0 (always best). Validation fails →
 
 Three pieces, ~200 lines together, no fine-tuning, no logit access, no model-specific anything. Everything else in the noroshi repo — adapters, the example app, the safety checker around `new Function`, the test suite — is plumbing around these three shapes.
 
-<!-- TODO §7 — What this doesn't fix (~200 words) -->
-<!-- TODO §8 — Try it (~100 words) -->
-<!-- TODO §9 — Closing (~150 words) -->
+## §7 — What this doesn't fix
+
+Four boundaries worth naming explicitly:
+
+- **The Llama row is unsolved.** I tried two things off the page (a different grammar header with no rule named `start`, heavier derivation labelling on the few-shot block) and neither dislodged the prior. This may be specific to Llama-3.2-1B's instruct-tuning, or it may be a general fragility of 1B Llama-family models on novel BNF. Open question, plausibly worth a follow-up post.
+- **Latency.** `+rerank` triples-to-10× wall time per task. Qwen goes from 440ms to 1.5s, Gemma from 0.9s to 7.2s, Llama from 2s to 18s. Acceptable for one-shot generations behind a "Generate" button; wrong for keystroke-level interactivity where you'd want N=1 with no retry.
+- **The grammar guarantee is still soft.** Outlines (with a token-level DFA) and WebLLM (with its WASM CFG mode) give a true grammar guarantee at the cost of logit access. noroshi gives a near-guarantee — 85% on the model that responds, less on the others — at the cost of latency. That tradeoff is right for the runtimes where logits aren't reachable (Apple Foundation Models, Chrome Prompt API, any OpenAI-compatible endpoint), wrong where they are.
+- **Single-domain bench.** noroshi-creative is one small DSL. Wang et al.'s numbers come from SMCalFlow, GeoQuery, SMILES — domains with very different difficulty profiles and very different ambient training-data exposure. The ablation curve shape held here; whether it holds on a denser DSL like SQL or a more obscure one like a planning-domain definition language is an open empirical question.
+
+## §8 — Try it
+
+```bash
+npm install noroshi@next
+```
+
+Smallest possible loop, no network, just to see the shape:
+
+```ts
+import { generate, StubAdapter } from "noroshi";
+
+const result = await generate({
+  task: "Greet Alice.",
+  grammar: `start: "hello" NAME\nNAME: /[A-Za-z]+/`,
+  examples: [{ input: "Greet Bob", output: "hello Bob" }],
+  llm: new StubAdapter(() => "hello Alice"),
+});
+```
+
+Real loop, against a local Ollama:
+
+```ts
+import { generate, FetchAdapter, GrammarAwareRanker } from "noroshi";
+
+const llm = new FetchAdapter({
+  endpoint: "http://localhost:11434/v1",
+  model: "qwen2.5:1.5b",
+});
+
+const result = await generate({
+  task, grammar, examples,
+  llm, validator,
+  retry: { maxAttempts: 3, includeErrorInPrompt: true },
+  selfConsistency: { n: 3, ranker: new GrammarAwareRanker() },
+});
+```
+
+Repo: [velocitylabo/noroshi](https://github.com/velocitylabo/noroshi). The creative-coding example with the live browser harness is under [`examples/creative-coding-p5js/`](https://github.com/velocitylabo/noroshi/tree/main/examples/creative-coding-p5js). MIT.
+
+## §9 — Closing
+
+The interesting finding here isn't that 85% is a high number — it's not, GPT-4 would get higher on a harder DSL, and the noroshi-creative DSL is deliberately small. The interesting finding is that **the entire ablation curve survives at a 100× drop in model size**. Each piece of the Grammar Prompting pipeline — the BNF prompt, the derivation-first few-shot, the validator-feedback retry, the grammar-aware best-of-N — adds roughly the same magnitude of lift it adds at GPT-3.5 scale, just from a lower floor.
+
+That matters because the on-device LLM era is starting now. Apple Foundation Models ships with iOS 26 / macOS 26. Chrome Prompt API hits Stable in Chrome 145-150. Apps built on those runtimes will want structured output, will not get CFG-level constrained decoding from the platform, and will run on 1-3B models that look very much like the Qwen and Gemma rows of the table above. Prompt-side Grammar Prompting is one of the only techniques that survives that constraint set.
+
+noroshi is one implementation. The technique is general — if you're building creative tooling, educational software, or any feature that needs DSL output on a small or browser-resident model, the four pieces in §6 will get you most of the way there. If you try it on a domain I haven't, I'd genuinely like to see your numbers.
