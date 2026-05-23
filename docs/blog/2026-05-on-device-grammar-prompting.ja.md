@@ -257,12 +257,12 @@ export class GrammarAwareRanker implements Ranker {
 
 ## §7 — これでも直らないもの
 
-明示的に名前を付けておきたい境界が 4 つあります。
+明示的に挙げておきたい限界が 4 つあります。
 
-- **Llama の行は未解決。** 文法ヘッダのルール名を `start` 以外に変える、few-shot ブロックの derivation 表記をもっと重くする、の 2 つを記事外で試したけれども prior は剥がれませんでした。Llama-3.2-1B の instruct-tuning 固有なのか、1B Llama 系全般の脆さなのか、まだわからない。フォローアップ記事ネタとしてあり得る open question。
-- **レイテンシ。** `+rerank` で 1 タスクあたりの壁時計時間が 3-10 倍に膨らみます。Qwen 440ms → 1.5s、Gemma 0.9s → 7.2s、Llama 2s → 18s。「Generate」ボタンの裏で 1 回叩く用途には許容範囲、キーストロークレベルのインタラクティビティでは N=1 で retry なしを取りたい。
-- **文法保証はまだソフト。** Outlines (token-level DFA) と WebLLM (WASM CFG モード) は logit アクセスを代償に「真の」文法保証を提供する。noroshi はレイテンシを代償に「ほぼ保証」 (反応するモデルで 85%、そうでないモデルではもっと低い) を提供する。logit が届かない環境 (Apple Foundation Models, Chrome Prompt API, OpenAI 互換 endpoint) ではこのトレードオフが正解、届く環境では不正解。
-- **単一ドメインの bench。** noroshi-creative は 1 つの小さな DSL に過ぎません。Wang らの数字は SMCalFlow / GeoQuery / SMILES — 難易度プロファイルも事前学習での露出量も全く違うドメインからのもの。今回の ablation curve の形が SQL のようなトークン密度の高い DSL や、PDDL のようなマイナーな DSL でも持つかどうかは別の経験的問題です。
+- **Llama の行は未解決。** 文法ヘッダのルール名を `start` 以外に変える、few-shot ブロックの derivation 表記をもっと重くする、の 2 つを記事外で試したけれども prior は剥がれませんでした。Llama-3.2-1B の instruct-tuning 固有なのか、1B Llama 系全般の脆さなのか、まだわからない。フォローアップ記事のネタになりそうな open question です。
+- **レイテンシ。** `+rerank` で 1 タスクあたりの実時間が 3-10 倍に膨らみます。Qwen 440ms → 1.5s、Gemma 0.9s → 7.2s、Llama 2s → 18s。「Generate」ボタンの裏で 1 回叩く用途には許容範囲、キーストロークレベルのインタラクティビティでは N=1 で retry なしを取りたい。
+- **文法保証はまだソフト。** Outlines (token-level DFA) と WebLLM (WASM CFG モード) は logit アクセスを代償に「真の」文法保証を提供する。noroshi はレイテンシを代償に「ほぼ保証」 (反応するモデルで 85%、そうでないモデルではもっと低い) を提供する。logit が届かない環境 (Apple Foundation Models, Chrome Prompt API, OpenAI 互換 endpoint) ではこのトレードオフが正しい選択、届く環境ではそうではない。
+- **単一ドメインの bench。** noroshi-creative は 1 つの小さな DSL に過ぎません。Wang らの数字は SMCalFlow / GeoQuery / SMILES — 難易度プロファイルも事前学習での露出量も全く違うドメインからのもの。今回の ablation curve の形が SQL のようなトークン密度の高い DSL や、PDDL のようなマイナーな DSL でも持つかどうかは、別の経験的に検証すべき問題です。
 
 ## §8 — 試す
 
