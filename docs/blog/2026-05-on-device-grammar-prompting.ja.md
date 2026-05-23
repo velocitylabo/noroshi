@@ -25,15 +25,15 @@
 
 ## §1 — なぜ 2026 年にこの話題が刺さるのか
 
-3 つのトレンドが同時に立ち上がっています。
+3 つのトレンドが同時に重なり始めています。
 
-**大型 LLM はネイティブで構造化出力を吐けるようになってきたが、それは JSON だけ。** GPT-5.2 は JSON Schema に対して invalid token mask をかける。Claude には `anthropic-beta: structured-outputs-2025-11-13` が来ている。Apple の Guided Generation は Foundation Models フレームワークに内蔵された。Chrome Prompt API も `responseConstraint` で JSON Schema と regex をサポートする。**いずれも context-free grammar (CFG) インターフェースは持たないし、近い将来のロードマップにも入っていない。**
+**大型 LLM はネイティブで構造化出力を提供するようになってきたが、それは JSON だけ。** GPT-5.2 は JSON Schema に対して invalid token mask をかける。Claude にも `anthropic-beta: structured-outputs-2025-11-13` が追加された。Apple の Guided Generation は Foundation Models フレームワークに内蔵された。Chrome Prompt API も `responseConstraint` で JSON Schema と regex をサポートする。**いずれも context-free grammar (CFG) インターフェースは持たないし、近い将来のロードマップにも入っていない。**
 
 **小型のオンデバイスモデルがどこにでも乗る時代がもうすぐ来る。** Apple Foundation Models は ~3B で、iOS 26 / macOS 26 がインストールされる端末すべてに乗る。Chrome Prompt API は Gemini Nano (~4 GB) を Extensions 向けに既に露出させており、Chrome 145-150 (2026 後半) で Stable に到達予定。WebLLM や Ollama がロングテールをカバーする。
 
 **この 2 つの交点はぽっかり空いている。** CFG レベルの構造化出力 — JSON Schema より表現力が高いもの — を 1-3B のオンデバイスモデルでやりたい場合、ビルトインの解は存在しません。XGrammar は WebLLM の WASM ランタイム内に閉じていて Apple FM や Chrome Prompt API には届かない。vLLM や TensorRT-LLM 内蔵の grammar-aware デコーダはサーバクラスの GPU を要求する。
 
-これは Wang らの Grammar Prompting が想定していたニッチそのものです (2023 年時点ではそういう構図で語られていなかったとはいえ)。彼らの手法は **プロンプト層で動く** — logit へのアクセスは要らない。それは今出てきているオンデバイスランタイムが提供してくれる唯一の層でもある。問題は、モデルサイズが 100 倍小さくなったときにこの技術が生き残るかどうかでした。
+これは Wang らの Grammar Prompting が想定していたニッチそのものです (2023 年当時は、そういう枠組みでは語られていなかったが)。Grammar Prompting は **プロンプト層で動く** — logit へのアクセスは要らない。それは今出てきているオンデバイスランタイムが提供してくれる唯一の層でもある。問題は、モデルサイズが 100 倍小さくなったときにこの技術が生き残るかどうかでした。
 
 冒頭の表は「ほぼ生き残る」という 1 つのデータ点です。
 
