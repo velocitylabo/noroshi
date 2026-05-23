@@ -270,7 +270,7 @@ export class GrammarAwareRanker implements Ranker {
 npm install noroshi@next
 ```
 
-最小ループ。ネットワーク不要、形だけ見るため:
+最小ループ。ネットワーク不要、形を確認するため:
 
 ```ts
 import { generate, StubAdapter } from "noroshi";
@@ -283,7 +283,7 @@ const result = await generate({
 });
 ```
 
-実ループ。ローカル Ollama に向けて:
+実 LLM 向けループ。ローカル Ollama に向けて:
 
 ```ts
 import { generate, FetchAdapter, GrammarAwareRanker } from "noroshi";
@@ -301,12 +301,12 @@ const result = await generate({
 });
 ```
 
-リポ: [velocitylabo/noroshi](https://github.com/velocitylabo/noroshi)。ブラウザで動かせる creative-coding 例は [`examples/creative-coding-p5js/`](https://github.com/velocitylabo/noroshi/tree/main/examples/creative-coding-p5js)。MIT。
+リポジトリ: [velocitylabo/noroshi](https://github.com/velocitylabo/noroshi)。ブラウザで動かせる creative-coding 例は [`examples/creative-coding-p5js/`](https://github.com/velocitylabo/noroshi/tree/main/examples/creative-coding-p5js)。MIT。
 
 ## §9 — 結び
 
-ここで面白いのは「85% が高い」ことではありません。GPT-4 ならもっと難しい DSL でこれ以上を出すし、noroshi-creative DSL は意図的に小さく作ってある。本当の発見は **モデルサイズが 100 倍縮んでも ablation curve の形が生き残る** こと。Grammar Prompting パイプラインの各部品 (BNF プロンプト、derivation 先行 few-shot、validator フィードバック retry、grammar-aware best-of-N) は、GPT-3.5 規模で稼ぐのとほぼ同じ大きさのリフトを、より低いフロアから稼いでくれる。
+ここで面白いのは「85% が高い」ことではありません。GPT-4 ならもっと難しい DSL でこれ以上を出すし、noroshi-creative DSL は意図的に小さく作ってある。本当の発見は **モデルサイズが 100 倍縮んでも ablation curve の形が生き残る** こと。Grammar Prompting パイプラインの各部品 (BNF プロンプト、derivation 付き few-shot、validator フィードバック retry、grammar-aware best-of-N) は、GPT-3.5 規模で稼ぐのとほぼ同じ大きさのリフトを、より低いフロアから稼いでくれる。
 
 この発見が今こそ重要なのは、オンデバイス LLM 時代がまさに始まろうとしているから。Apple Foundation Models が iOS 26 / macOS 26 と一緒に出荷される。Chrome Prompt API は Chrome 145-150 で Stable に到達する。それらのランタイム上に作るアプリは構造化出力を欲しがるはずだが、プラットフォームから CFG レベルの constrained decoding は来ない。動くモデルは上の表の Qwen や Gemma の行とまさに同じサイズ感です。プロンプト側の Grammar Prompting は、この制約セットを生き残る数少ない技術の一つ。
 
-noroshi は 1 つの実装に過ぎません。技術自体は一般的です。creative tools / 教育系ソフト / オンデバイス or ブラウザ常駐型モデルの上で DSL 出力が必要なものを作っているなら、§6 の 4 ピースで大半の距離は稼げます。私が試していないドメインで試したら、ぜひその数字を教えてください。
+noroshi は 1 つの実装に過ぎません。技術自体は普遍的です。creative tools / 教育系ソフト / オンデバイス or ブラウザ常駐型モデルの上で DSL 出力が必要なものを作っているなら、§6 の 3 つの部品で大半の距離は稼げます。私が試していないドメインで試したら、ぜひその数字を教えてください。
