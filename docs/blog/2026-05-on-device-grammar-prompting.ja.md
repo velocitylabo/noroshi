@@ -39,12 +39,12 @@
 
 ## §2 — Grammar Prompting って具体的に何
 
-Wang, Hu, Saparov, Kim, Wang らによる [*Grammar Prompting for Domain-Specific Language Generation with Large Language Models*](https://arxiv.org/abs/2305.19234) が NeurIPS 2023 で発表されました。論文の主張を 1 行で言えば: DSL の BNF/EBNF 文法をプロンプトに書き、各 few-shot 例で **derivation** (パースツリーの骨格) を最終的なプログラム本体の前に置き、モデルにその derivation→surface のパターンを真似させると、chain-of-thought 単独より圧倒的に文法妥当な出力が増える。SMCalFlow / GeoQuery / SMILES では数 pt の改善、事前学習で頻度が低い新規 DSL では二桁 pt の改善が報告されています。
+Wang, Hu, Saparov, Kim, Wang らによる [*Grammar Prompting for Domain-Specific Language Generation with Large Language Models*](https://arxiv.org/abs/2305.19234) が NeurIPS 2023 で発表されました。論文の主張を要約すれば: DSL の BNF/EBNF 文法をプロンプトに書き、各 few-shot 例で **derivation** (パースツリーの骨格) を最終的なプログラム本体の前に置き、モデルにその derivation→surface のパターンを真似させると、chain-of-thought 単独より圧倒的に文法妥当な出力が増える。SMCalFlow / GeoQuery / SMILES では数 pt の改善、事前学習で頻度が低い新規 DSL では二桁 pt の改善が報告されています。
 
-4 つの可動部品で動いています。
+4 つの構成要素で動いています。
 
 1. **文法をプロンプトに丸ごと注入する。** 言い換えでも、JSON Schema 訳でもなく、**実際の `.lark` / `.bnf` ソース**。モデルは学習データで十分な量の BNF を見てきているので、それを構造的アンカーとして扱える。
-2. **derivation 先行の few-shot 例。** 各例で `start → block, block → bg_stmt, …` のようなパースツリー骨格を「最終出力の前に」表示する。モデルは普段なら踏まないであろう構造化された "考える手順" を、模倣として教え込まれます。
+2. **derivation 付きの few-shot 例。** 各例で `start → block, block → bg_stmt, …` のようなパースツリー骨格を「最終出力の前に」表示する。モデルは普段なら踏まないであろう構造化された思考プロセスを、模倣として教え込まれます。
 3. **検証 (Validate).** 出力を同じ文法でパースする。
 4. **失敗時の修復 (Repair).** 再サンプルするか、validator の具体的なエラー文をプロンプトに足して「直してくれ」と頼む。
 
@@ -79,7 +79,7 @@ Task: Three pink circles in a horizontal row.
 Output:
 ```
 
-モデルは `Output:` の後を補完する。パースが通れば採用。通らなければ、その失敗をどう活かすかが次の話です。
+モデルは `Output:` の後を補完する。パースが通れば採用。通らなければ、その失敗をどう活かすかが、後続のセクションのテーマです。
 
 これが手法のすべて。以下で出てくる retry ループ、並列サンプリング、ランカーは、すべてこの 1 つの形の上に乗っているレバレッジです。
 
