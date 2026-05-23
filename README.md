@@ -115,6 +115,7 @@ The `examples/` directory will host reference applications demonstrating `norosh
 `noroshi` is MIT and that won't change. If you want help going further — designing a domain-specific grammar for your product, integrating noroshi into a closed-source codebase, or scoping a structured-output engagement on top of an on-device LLM — Velocity LABO takes paid work in that lane.
 
 - Email: [contact@velocitylabo.dev](mailto:contact@velocitylabo.dev)
+- Sponsor on GitHub: [github.com/sponsors/velocitylabo](https://github.com/sponsors/velocitylabo)
 
 ## License
 
