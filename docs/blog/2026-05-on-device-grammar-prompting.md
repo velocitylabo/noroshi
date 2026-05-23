@@ -147,9 +147,9 @@ ollama pull qwen2.5:1.5b   # or gemma2:2b / llama3.2:1b
 npx tsx examples/creative-coding-p5js/bench/run.ts
 ```
 
-Now we can read the table row by row.
+Now we can read the table column by column.
 
-## §5 — Reading the table row by row
+## §5 — Reading the table column by column
 
 | Model | baseline | +grammar | +few-shot | +retry | +rerank |
 |---|---:|---:|---:|---:|---:|

@@ -128,28 +128,28 @@ repeat 3 {
 
 ## §4 — Ablation の階段
 
-5 セル。各セルは同じ noroshi パイプラインに、1 つだけ要素を追加した形です。
+5 つの ablation セル。それぞれが同じ noroshi パイプラインに、1 つだけ要素を追加した形です。
 
 | Cell | 追加するもの | 備考 |
 |---|---|---|
 | `baseline` | (タスク説明だけ) | 比較基準のフロア。文法なし、few-shot なし、validator なし |
 | `grammar-only` | + プロンプトに BNF | モデルには文法が見えるが、出力検証には使われない |
-| `+few-shot` | + 4 つの derivation 先行例 + 検証 | Wang らのオリジナル構成、単発実行 |
+| `+few-shot` | + 4 つの derivation 付き few-shot 例 + 検証 | Wang らのオリジナル構成、単発実行 |
 | `+retry` | + 最大 3 回までリトライ (validator のエラー文を次プロンプトに注入) | 逐次的な修復ループ |
 | `+rerank` | + best-of-3 サンプリング + grammar-aware ランカー | 並列サンプリングを (逐次修復と併用しつつ) 加える |
 
-どのセルでも、最終的に採用された出力は **同じ post-hoc validator** で評価しています。`baseline` セルがたまたま運よく妥当な DSL に着地した場合もきちんと pass としてカウントされる、ということ。全セルが 1 つの物差しを共有しています。
+どのセルでも、最終的に採用された出力は **同じ post-hoc validator** で評価しています。`baseline` セルが偶然妥当な DSL に着地しても、その場合はちゃんと pass としてカウントされる。全セルが 1 つの物差しを共有しています。
 
-ローカル Ollama 上の 3 モデル (RTX 2060 Mobile, VRAM 6 GB): `qwen2.5:1.5b` / `gemma2:2b` / `llama3.2:1b`。各 20 タスク。各 5 ablation。合計 300 セル。最も遅いセル (Llama × `+rerank`) は 1 タスク 18 秒、最速 (Qwen × `+few-shot`) は 440 ミリ秒。再現は 1 行:
+ローカル Ollama で動かす 3 モデル (RTX 2060 Mobile, VRAM 6 GB): `qwen2.5:1.5b` / `gemma2:2b` / `llama3.2:1b`。各 20 タスク。各 5 ablation。合計 300 セル。最も遅いセル (Llama × `+rerank`) は 1 タスク 18 秒、最速 (Qwen × `+few-shot`) は 440 ミリ秒。再現は 1 行:
 
 ```bash
 ollama pull qwen2.5:1.5b   # または gemma2:2b / llama3.2:1b
 npx tsx examples/creative-coding-p5js/bench/run.ts
 ```
 
-これで表を 1 行ずつ読み解く準備が整いました。
+これで表をカラムごとに読み解く準備が整いました。
 
-## §5 — 表を 1 行ずつ読む
+## §5 — 表をカラムごとに読む
 
 | Model | baseline | +grammar | +few-shot | +retry | +rerank |
 |---|---:|---:|---:|---:|---:|
