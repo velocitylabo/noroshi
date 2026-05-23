@@ -110,6 +110,12 @@ The Wang et al. result: SFT-free, competitive with fine-tuned baselines on SMCal
 
 The `examples/` directory will host reference applications demonstrating `noroshi` for various DSLs (creative coding with p5.js, simplified SQL subsets, custom annotation languages, etc.).
 
+## Consulting / commercial use
+
+`noroshi` is MIT and that won't change. If you want help going further — designing a domain-specific grammar for your product, integrating noroshi into a closed-source codebase, or scoping a structured-output engagement on top of an on-device LLM — Velocity LABO takes paid work in that lane.
+
+- Email: [contact@velocitylabo.dev](mailto:contact@velocitylabo.dev)
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
