@@ -171,9 +171,9 @@ npx tsx examples/creative-coding-p5js/bench/run.ts
 
 ## §6 — それを実装しているコード
 
-3 つの部品。どれも画面 1 つに収まる量です。
+3 つの部品。どれも画面 1 つに収まるサイズです。
 
-### 6.1 `buildPrompt` — derivation 先行 few-shot
+### 6.1 `buildPrompt` — derivation 付き few-shot
 
 プロンプト構築は 1 関数で完結:
 
@@ -202,7 +202,7 @@ export function buildPrompt(p: PromptInputs): string {
 }
 ```
 
-1 つの文字列。chat メッセージのスキャフォールディングも、プロバイダ別テンプレートもなし。`+grammar` から `+rerank` までの全カラムが、この同一関数を使っています。違いは渡す引数だけ。
+1 つの文字列。chat メッセージの足場づくりも、プロバイダ別テンプレートもなし。`+grammar` から `+rerank` までの全カラムが、この同一関数を使っています。違いは渡す引数だけ。
 
 ### 6.2 retry with feedback
 
@@ -251,9 +251,9 @@ export class GrammarAwareRanker implements Ranker {
 }
 ```
 
-ルール 3 つ。validate が成功 → スコア 0 (常に best)。失敗 → スコア = パーサが捨てた量 (`len - errorOffset`)。validation コンテキストなし → 長さで代替 (短いハルシネーションのほうがマシ、というヒューリスティック)。これが Qwen の +10pt、Gemma の +30pt を稼いだ正体です。
+ルール 3 つ。validate が成功 → スコア 0 (常に best)。失敗 → スコア = パーサが捨てた量 (`len - errorOffset`)。validation コンテキストなし → 長さで代替 (短い hallucination のほうが害が小さい、というヒューリスティック)。これが Qwen の +10pt、Gemma の +30pt を稼いだ正体です。
 
-3 つのピース、合計 ~200 行、fine-tuning なし、logit アクセスなし、モデル固有のチューニングなし。noroshi リポジトリの他のすべて — アダプタ、example app、`new Function` 周りの safety checker、テストスイート — はこの 3 つの形を支える配管です。
+3 つの部品、合計 ~200 行、fine-tuning なし、logit アクセスなし、モデル固有のチューニングなし。noroshi リポジトリの他のすべて — アダプタ、example app、`new Function` 周りの safety checker、テストスイート — はこの 3 つの形を支える配管です。
 
 ## §7 — これでも直らないもの
 
