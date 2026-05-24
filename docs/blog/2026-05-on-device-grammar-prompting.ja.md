@@ -167,7 +167,7 @@ npx tsx examples/creative-coding-p5js/bench/run.ts
 
 **`+rerank`: 85%, 75%。retry で直らないケースを best-of-3 が拾う。** 一部の miss は頑固で、retry を 3 回回しても同じ間違いを繰り返す。並列で N=3 サンプルし、(a) 妥当なものがあればそれを、(b) なければパースが最も深く進んだ失敗を選ぶことでこのループが解けます。ランカーのスコアは `max(1, len - errorOffset)`。40 文字までパースが進んだ候補は、3 文字で死んだ候補より上位。Qwen +10pt、Gemma +30pt — Gemma の方が伸びが大きいのは、サンプリングのバリアンスが高くて並列性がより多くの diversity を稼ぎやすいからでしょう (Qwen はそもそも一貫性が高い)。
 
-**Llama、5 カラム全部、ぴったり 0%。** Llama の行はこの表で最も興味深いセルで、失敗モードがとても具体的です。[`results-llama3.2_1b.json`](https://github.com/velocitylabo/noroshi/blob/main/examples/creative-coding-p5js/bench/results-llama3.2_1b.json) を見ると、すべての ablation で出力の先頭にリテラルトークン **`start`** が来ています — その直後で lex エラー `unknown identifier "start" at offset 0`。モデルが文法の先頭ルール名 (`start: block+`) を記憶していて、`start` を最初のトークンとして吐いてしまっている。retry でも直らない: 次の 2 回も `start` で始まる。best-of-3 でも直らない: 3 サンプルすべてが `start` で始まる。パイプラインが活躍するには「文法妥当な継続にいくらかの確率質量がある」ことが前提で、モデルが圧倒的な自信で 1 つの誤りトークンに張り付いているとき、retry も rerank もつかむものがない。**noroshi はモデルの文法 prior を増幅できるが、prior を作ることはできない。**
+**Llama、5 カラム全部、ぴったり 0%。** この表で最も興味深いのは Llama の行で、失敗モードがとても具体的です。[`results-llama3.2_1b.json`](https://github.com/velocitylabo/noroshi/blob/main/examples/creative-coding-p5js/bench/results-llama3.2_1b.json) を見ると、すべての ablation で出力の先頭にリテラルトークン **`start`** が来ています — その直後で lex エラー `unknown identifier "start" at offset 0`。モデルが文法の先頭ルール名 (`start: block+`) を記憶していて、`start` を最初のトークンとして吐いてしまっている。retry でも直らない: 次の 2 回も `start` で始まる。best-of-3 でも直らない: 3 サンプルすべてが `start` で始まる。パイプラインが活躍するには「文法妥当な継続にいくらかの確率質量がある」ことが前提で、モデルが圧倒的な自信で 1 つの誤りトークンに張り付いているとき、retry も rerank もつかむものがない。**noroshi はモデルの文法 prior を増幅できるが、prior を作ることはできない。**
 
 ## §6 — それを実装しているコード
 
