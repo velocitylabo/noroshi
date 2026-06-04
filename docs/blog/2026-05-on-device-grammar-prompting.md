@@ -39,7 +39,7 @@ The table above is one data point that says: mostly, yes.
 
 ## §2 — What Grammar Prompting actually is
 
-Wang, Hu, Saparov, Kim, and Wang published [*Grammar Prompting for Domain-Specific Language Generation with Large Language Models*](https://arxiv.org/abs/2305.19234) at NeurIPS 2023. The paper's claim, distilled: if you write a domain-specific language's BNF/EBNF grammar into the prompt, give the model a few examples where each example includes the **derivation** (parse tree skeleton) before the surface program, and let the model imitate that derivation→surface pattern, it produces dramatically more grammar-valid output than chain-of-thought prompting alone. On SMCalFlow, GeoQuery, and SMILES they reported single-digit-percent improvements at scale, and double-digit improvements on the novel DSLs the model hadn't seen in pre-training.
+Wang et al. published [*Grammar Prompting for Domain-Specific Language Generation with Large Language Models*](https://arxiv.org/abs/2305.19234) at NeurIPS 2023. The paper's claim, distilled: if you write a domain-specific language's BNF/EBNF grammar into the prompt, give the model a few examples where each example includes the **derivation** (parse tree skeleton) before the surface program, and let the model imitate that derivation→surface pattern, it produces dramatically more grammar-valid output than chain-of-thought prompting alone. On SMCalFlow, GeoQuery, and SMILES they reported single-digit-percent improvements at scale, and double-digit improvements on the novel DSLs the model hadn't seen in pre-training.
 
 Four moving parts make it work:
 
@@ -122,7 +122,7 @@ repeat 3 {
 }
 ```
 
-…which becomes a p5 sketch with three pink dots across the canvas. Twenty-token grammar, twenty-token program, one rendered frame. The whole DSL exists for one reason: to be small enough that a 1-2B model has a fighting chance, and novel enough that the model can't just regurgitate training data.
+…which becomes a p5 sketch with three pink dots across the canvas. Twenty-line grammar, twenty-token program, one rendered frame. The whole DSL exists for one reason: to be small enough that a 1-2B model has a fighting chance, and novel enough that the model can't just regurgitate training data.
 
 This is the *DSL* axis of the bench. The *task* axis is twenty natural-language prompts — "A green dot that follows the mouse," "Six small green circles in a row near the top," "Background that flashes between black and white over time" — none of which overlap with the four few-shot examples the prompt carries. We're testing the pipeline's ability to generalise inside the grammar, not its ability to copy from the prompt.
 

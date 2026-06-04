@@ -39,7 +39,7 @@
 
 ## §2 — Grammar Prompting って具体的に何
 
-Wang, Hu, Saparov, Kim, Wang らによる [*Grammar Prompting for Domain-Specific Language Generation with Large Language Models*](https://arxiv.org/abs/2305.19234) が NeurIPS 2023 で発表されました。論文の主張を要約すれば: DSL の BNF/EBNF 文法をプロンプトに書き、各 few-shot 例で **derivation** (パースツリーの骨格) を最終的なプログラム本体の前に置き、モデルにその derivation→surface のパターンを真似させると、chain-of-thought 単独より圧倒的に文法妥当な出力が増える。SMCalFlow / GeoQuery / SMILES では数 pt の改善、事前学習で頻度が低い新規 DSL では二桁 pt の改善が報告されています。
+Wang et al. による [*Grammar Prompting for Domain-Specific Language Generation with Large Language Models*](https://arxiv.org/abs/2305.19234) が NeurIPS 2023 で発表されました。論文の主張を要約すれば: DSL の BNF/EBNF 文法をプロンプトに書き、各 few-shot 例で **derivation** (パースツリーの骨格) を最終的なプログラム本体の前に置き、モデルにその derivation→surface のパターンを真似させると、chain-of-thought 単独より圧倒的に文法妥当な出力が増える。SMCalFlow / GeoQuery / SMILES では数 pt の改善、事前学習で頻度が低い新規 DSL では二桁 pt の改善が報告されています。
 
 4 つの構成要素で動いています。
 
